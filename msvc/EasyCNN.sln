@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EasyCNN", "EasyCNN.vcxproj", "{29B93A29-7ACA-4A36-81AC-6371B7246DCF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EasyCNN_Example", "EasyCNN_Example.vcxproj", "{1FD239E7-4921-440D-9FF6-2C6B392826BA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{29B93A29-7ACA-4A36-81AC-6371B7246DCF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{29B93A29-7ACA-4A36-81AC-6371B7246DCF}.Debug|Win32.Build.0 = Debug|Win32
+		{29B93A29-7ACA-4A36-81AC-6371B7246DCF}.Release|Win32.ActiveCfg = Release|Win32
+		{29B93A29-7ACA-4A36-81AC-6371B7246DCF}.Release|Win32.Build.0 = Release|Win32
+		{1FD239E7-4921-440D-9FF6-2C6B392826BA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1FD239E7-4921-440D-9FF6-2C6B392826BA}.Debug|Win32.Build.0 = Debug|Win32
+		{1FD239E7-4921-440D-9FF6-2C6B392826BA}.Release|Win32.ActiveCfg = Release|Win32
+		{1FD239E7-4921-440D-9FF6-2C6B392826BA}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
