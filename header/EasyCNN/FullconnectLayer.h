@@ -4,11 +4,11 @@
 
 namespace NAMESPACE
 {
-	class EasyCNN
+	class FullconnectLayer : public Layer
 	{
 	public:
-		void train();
-		void test();
+		FullconnectLayer();
+		virtual ~FullconnectLayer();
 	private:
 	};
 }
