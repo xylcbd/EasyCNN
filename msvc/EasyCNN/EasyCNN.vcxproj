@@ -11,19 +11,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{1FD239E7-4921-440D-9FF6-2C6B392826BA}</ProjectGuid>
+    <ProjectGuid>{29B93A29-7ACA-4A36-81AC-6371B7246DCF}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>EasyCNN_Example</RootNamespace>
+    <RootNamespace>EasyCNN</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -52,7 +52,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../header/</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../header/</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -78,17 +78,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="EasyCNN.vcxproj">
-      <Project>{29b93a29-7aca-4a36-81ac-6371b7246dcf}</Project>
-    </ProjectReference>
+    <ClInclude Include="..\..\header\EasyCNN\Configure.h" />
+    <ClInclude Include="..\..\header\EasyCNN\ConvolutionLayer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\DataLayer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\EasyCNN.h" />
+    <ClInclude Include="..\..\header\EasyCNN\FullconnectLayer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\Layer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\PoolingLayer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\examples\main.cpp" />
-    <ClCompile Include="..\examples\mnist_data_loader.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\examples\mnist_data_loader.h" />
-    <ClInclude Include="..\examples\mnist_parser.h" />
+    <ClCompile Include="..\..\header\EasyCNN\ConvolutionLayer.cpp" />
+    <ClCompile Include="..\..\header\EasyCNN\DataLayer.cpp" />
+    <ClCompile Include="..\..\header\EasyCNN\FullconnectLayer.cpp" />
+    <ClCompile Include="..\..\header\EasyCNN\Layer.cpp" />
+    <ClCompile Include="..\..\header\EasyCNN\PoolingLayer.cpp" />
+    <ClCompile Include="..\..\src\EasyCNN.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

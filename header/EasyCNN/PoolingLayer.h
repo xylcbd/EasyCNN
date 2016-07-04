@@ -4,11 +4,11 @@
 
 namespace NAMESPACE
 {
-	class EasyCNN
+	class PoolingLayer : public Layer
 	{
 	public:
-		void train();
-		void test();
+		PoolingLayer();
+		virtual ~PoolingLayer();
 	private:
 	};
 }

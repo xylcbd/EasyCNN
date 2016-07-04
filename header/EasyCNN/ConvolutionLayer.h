@@ -4,11 +4,11 @@
 
 namespace NAMESPACE
 {
-	class EasyCNN
+	class ConvolutionLayer : public Layer
 	{
 	public:
-		void train();
-		void test();
+		ConvolutionLayer();
+		virtual ~ConvolutionLayer();
 	private:
 	};
 }

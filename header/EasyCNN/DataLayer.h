@@ -4,11 +4,11 @@
 
 namespace NAMESPACE
 {
-	class EasyCNN
+	class DataLayer : public Layer
 	{
 	public:
-		void train();
-		void test();
+		DataLayer();
+		virtual ~DataLayer();
 	private:
 	};
 }

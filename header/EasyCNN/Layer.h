@@ -1,14 +1,14 @@
 #pragma once
 #include "EasyCNN/Configure.h"
-#include "EasyCNN/Layer.h"
 
 namespace NAMESPACE
 {
-	class EasyCNN
+	class Layer
 	{
 	public:
-		void train();
-		void test();
+		Layer();
+		virtual ~Layer();
 	private:
+
 	};
 }
