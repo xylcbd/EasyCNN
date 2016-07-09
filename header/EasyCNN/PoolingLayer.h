@@ -2,7 +2,7 @@
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/Layer.h"
 
-namespace NAMESPACE
+namespace EasyCNN
 {
 	class PoolingLayer : public Layer
 	{
