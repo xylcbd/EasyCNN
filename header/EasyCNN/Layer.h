@@ -1,7 +1,7 @@
 #pragma once
 #include "EasyCNN/Configure.h"
 
-namespace NAMESPACE
+namespace EasyCNN
 {
 	class Layer
 	{

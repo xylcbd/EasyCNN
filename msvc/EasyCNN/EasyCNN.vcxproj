@@ -78,13 +78,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\header\EasyCNN\ActivationLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\Configure.h" />
     <ClInclude Include="..\..\header\EasyCNN\ConvolutionLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\DataLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\EasyCNN.h" />
+    <ClInclude Include="..\..\header\EasyCNN\NetWork.h" />
     <ClInclude Include="..\..\header\EasyCNN\FullconnectLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\Layer.h" />
     <ClInclude Include="..\..\header\EasyCNN\PoolingLayer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\SoftmaxLayer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\header\EasyCNN\ConvolutionLayer.cpp" />
@@ -92,7 +95,9 @@
     <ClCompile Include="..\..\header\EasyCNN\FullconnectLayer.cpp" />
     <ClCompile Include="..\..\header\EasyCNN\Layer.cpp" />
     <ClCompile Include="..\..\header\EasyCNN\PoolingLayer.cpp" />
-    <ClCompile Include="..\..\src\EasyCNN.cpp" />
+    <ClCompile Include="..\..\src\ActivationLayer.cpp" />
+    <ClCompile Include="..\..\src\NetWork.cpp" />
+    <ClCompile Include="..\..\src\SoftmaxLayer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

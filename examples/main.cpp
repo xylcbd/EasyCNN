@@ -42,5 +42,39 @@ int main(int argc, char* argv[])
 	train();
 	test();
 
+	EasyCNN::NetWork network;
+	//input data layer 0
+	std::shared_ptr<EasyCNN::DataLayer> _0_dataLayer(std::make_shared<EasyCNN::DataLayer>());
+	network.addayer(_0_dataLayer);
+	//convolution layer 1
+	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
+	network.addayer(_1_convLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//pooling layer 2
+	std::shared_ptr<EasyCNN::PoolingLayer> _2_poolingLayer(std::make_shared<EasyCNN::PoolingLayer>());
+	network.addayer(_2_poolingLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//convolution layer 3
+	std::shared_ptr<EasyCNN::ConvolutionLayer> _3_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
+	network.addayer(_3_convLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//pooling layer 4
+	std::shared_ptr<EasyCNN::PoolingLayer> _4_pooingLayer(std::make_shared<EasyCNN::PoolingLayer>());
+	network.addayer(_4_pooingLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//full connect layer 5
+	std::shared_ptr<EasyCNN::FullconnectLayer> _5_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
+	network.addayer(_5_fullconnectLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//soft max layer 6
+	std::shared_ptr<EasyCNN::SoftmaxLayer> _6_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
+	network.addayer(_6_softmaxLayer);
+
+	//train
+	while (true)
+	{
+		network.forward();
+		network.backward();
+	}
 	return 0;
 }

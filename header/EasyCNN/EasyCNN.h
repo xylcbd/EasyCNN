@@ -1,14 +1,14 @@
 #pragma once
-#include "EasyCNN/Configure.h"
-#include "EasyCNN/Layer.h"
 
-namespace NAMESPACE
-{
-	class EasyCNN
-	{
-	public:
-		void train();
-		void test();
-	private:
-	};
-}
+//configure
+#include "EasyCNN/Configure.h"
+//layers
+#include "EasyCNN/Layer.h"
+#include "EasyCNN/ActivationLayer.h"
+#include "EasyCNN/DataLayer.h"
+#include "EasyCNN/ConvolutionLayer.h"
+#include "EasyCNN/PoolingLayer.h"
+#include "EasyCNN/FullconnectLayer.h"
+#include "EasyCNN/SoftmaxLayer.h"
+//network
+#include "EasyCNN/NetWork.h"

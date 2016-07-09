@@ -4,11 +4,11 @@
 
 namespace EasyCNN
 {
-	class ConvolutionLayer : public Layer
+	class SoftmaxLayer : public Layer
 	{
 	public:
-		ConvolutionLayer();
-		virtual ~ConvolutionLayer();
+		SoftmaxLayer();
+		virtual ~SoftmaxLayer();
 	private:
 	};
 }
