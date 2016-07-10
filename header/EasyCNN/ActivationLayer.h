@@ -6,10 +6,6 @@ namespace EasyCNN
 {
 	class ActivationLayer : public Layer
 	{
-	public:
-		ActivationLayer();
-		virtual ~ActivationLayer();
-	private:
 	};
 
 	class SigmodLayer : public ActivationLayer
@@ -17,6 +13,11 @@ namespace EasyCNN
 	public:
 		SigmodLayer();
 		virtual ~SigmodLayer();
+	public:
+		DECLARE_LAYER_TYPE;
+		virtual std::string getLayerType() const;
+		virtual void forward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
+		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
 	};
 
 	class TanhLayer : public ActivationLayer
@@ -24,6 +25,11 @@ namespace EasyCNN
 	public:
 		TanhLayer();
 		virtual ~TanhLayer();
+	public:
+		DECLARE_LAYER_TYPE;
+		virtual std::string getLayerType() const;
+		virtual void forward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
+		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
 	};
 
 	class ReluLayer : public ActivationLayer
@@ -31,5 +37,10 @@ namespace EasyCNN
 	public:
 		ReluLayer();
 		virtual ~ReluLayer();
+	public:
+		DECLARE_LAYER_TYPE;
+		virtual std::string getLayerType() const;
+		virtual void forward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
+		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
 	};
 }

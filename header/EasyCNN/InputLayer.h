@@ -4,14 +4,14 @@
 
 namespace EasyCNN
 {
-	class PoolingLayer : public Layer
+	class InputLayer : public Layer
 	{
 	public:
-		PoolingLayer();
-		virtual ~PoolingLayer();
+		InputLayer();
+		virtual ~InputLayer();
 	public:
 		DECLARE_LAYER_TYPE;
-		virtual std::string getLayerType() const;
+		virtual std::string getLayerType() const;		
 		virtual void forward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
 		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
 	};
