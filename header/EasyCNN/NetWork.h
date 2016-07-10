@@ -1,7 +1,8 @@
 #pragma once
+#include <memory>
+#include <vector>
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/Layer.h"
-#include <memory>
 
 namespace EasyCNN
 {
@@ -11,8 +12,11 @@ namespace EasyCNN
 		NetWork();
 		virtual ~NetWork();
 		void addayer(std::shared_ptr<Layer> layer);
-		void backward();
-		void forward();
+	public:
+		void forward(std::shared_ptr<DataBucket> inputDataBucket);
+		void backward();		
 	private:
+		std::vector<std::shared_ptr<Layer>> layers;
+		std::vector<std::shared_ptr<DataBucket>> dataBuckets;
 	};
 }

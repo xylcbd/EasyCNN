@@ -37,17 +37,18 @@ static void test()
 	assert(images.size() == labels.size());
 	//TODO
 }
+
 int main(int argc, char* argv[])
 {
-	train();
-	test();
+// 	train();
+// 	test();
 
 	EasyCNN::NetWork network;
 	//input data layer 0
-	std::shared_ptr<EasyCNN::DataLayer> _0_dataLayer(std::make_shared<EasyCNN::DataLayer>());
-	network.addayer(_0_dataLayer);
+	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
+	network.addayer(_0_inputLayer);
 	//convolution layer 1
-	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
+	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());	
 	network.addayer(_1_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 2
@@ -71,9 +72,13 @@ int main(int argc, char* argv[])
 	network.addayer(_6_softmaxLayer);
 
 	//train
+	int idx = 0;
 	while (true)
 	{
-		network.forward();
+		std::cout << "\nidx = " << idx++ << std::endl;
+		std::shared_ptr<EasyCNN::DataBucket> inputDataBucket;
+		//TODO : load data
+		network.forward(inputDataBucket);
 		network.backward();
 	}
 	return 0;
