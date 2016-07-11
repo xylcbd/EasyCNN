@@ -48,7 +48,10 @@
     <ClInclude Include="..\..\header\EasyCNN\InputLayer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\header\EasyCNN\Logger.h">
+    <ClInclude Include="..\..\header\EasyCNN\EasyAssert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\header\EasyCNN\EasyLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -75,6 +78,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\PoolingLayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\EasyAssert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
