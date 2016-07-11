@@ -1,19 +1,33 @@
 #pragma once
-#include <vector>
+#include <memory>
 #include "EasyCNN/Configure.h"
-#include "EasyCNN/Logger.h"
+#include "EasyCNN/EasyLogger.h"
+#include "EasyCNN/EasyAssert.h"
 
 namespace EasyCNN
 {
+	struct BucketSize
+	{
+	public:
+		BucketSize() = default;
+		BucketSize(const int _channels, const int _width, const int _height)
+			:channels(_channels), width(_width), height(_height){}
+		inline int totalSize() const { return channels*width*height; }
+		inline bool operator==(const BucketSize& other) const{ return other.channels == channels && other.width == width && other.height == height; }
+		int channels = 0;
+		int width = 0;
+		int height = 0;
+	};
 	class DataBucket
 	{
 	public:
-		DataBucket();
-		virtual ~DataBucket();
+		DataBucket(const BucketSize _size);
+		virtual ~DataBucket();		
+		BucketSize getSize() const;
+		std::shared_ptr<data_type> getData() const;
+		void cloneTo(DataBucket& target);
 	private:
-		int channels;
-		int width;
-		int height;
-		std::vector<data_type> data;
+		BucketSize size;
+		std::shared_ptr<data_type> data;
 	};
 }

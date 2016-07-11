@@ -2,7 +2,8 @@
 
 //configure
 #include "EasyCNN/Configure.h"
-#include "EasyCNN/Logger.h"
+#include "EasyCNN/EasyLogger.h"
+#include "EasyCNN/EasyAssert.h"
 //layers
 #include "EasyCNN/Layer.h"
 #include "EasyCNN/ActivationLayer.h"
