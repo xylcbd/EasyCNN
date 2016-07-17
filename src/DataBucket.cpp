@@ -2,7 +2,7 @@
 
 EasyCNN::DataBucket::DataBucket(const BucketSize _size)
 	:size(_size),
-	data(new data_type[size.channels*size.width*size.height])
+	data(new data_type[size.number*size.channels*size.width*size.height])
 {
 }
 EasyCNN::DataBucket::~DataBucket()
