@@ -16,7 +16,7 @@ namespace EasyCNN
 		PoolingLayer();
 		virtual ~PoolingLayer();
 	public:
-		void setParamaters(const PoolingType _poolingType,const BucketSize _poolingKernelSize);
+		void setParamaters(const PoolingType _poolingType, const BucketSize _poolingKernelSize,const int _widthStep, const int _heightStep);
 	public:
 		DECLARE_LAYER_TYPE;
 		virtual std::string getLayerType() const;
@@ -26,5 +26,7 @@ namespace EasyCNN
 	private:
 		PoolingType poolingType = PoolingType::MaxPooling;
 		BucketSize poolingKernelSize;
+		int widthStep = 0;
+		int heightStep = 0;
 	};
 }

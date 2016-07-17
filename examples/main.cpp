@@ -43,61 +43,65 @@ int main(int argc, char* argv[])
 // 	train();
 // 	test();
 
-	const int width = 32;
-	const int height = 32;
+	const int num = 1;
 	const int channels = 1;
+	const int width = 32;
+	const int height = 32;	
 
 	EasyCNN::NetWork network;
-	network.setInputSize(EasyCNN::BucketSize(channels, width, height));
+	network.setInputSize(EasyCNN::BucketSize(1,channels, width, height));
 	//input data layer 0
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
 	//convolution layer 1
 	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());	
-	_1_convLayer->setParamaters(EasyCNN::BucketSize(6, 3, 3), 2, true);
+	_1_convLayer->setParamaters(EasyCNN::BucketSize(6,1,5,5),1,1, true);
 	network.addayer(_1_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 2
 	std::shared_ptr<EasyCNN::PoolingLayer> _2_poolingLayer(std::make_shared<EasyCNN::PoolingLayer>());
-	_2_poolingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::BucketSize(1, 2, 2));
+	_2_poolingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::BucketSize(1,6, 2, 2),2,2);
 	network.addayer(_2_poolingLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//convolution layer 3
 	std::shared_ptr<EasyCNN::ConvolutionLayer> _3_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
-	_3_convLayer->setParamaters(EasyCNN::BucketSize(16, 3, 3), 2, true);
+	_3_convLayer->setParamaters(EasyCNN::BucketSize(16,1,5, 5), 1,1, true);
 	network.addayer(_3_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 4
 	std::shared_ptr<EasyCNN::PoolingLayer> _4_pooingLayer(std::make_shared<EasyCNN::PoolingLayer>());
-	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::BucketSize(1, 2, 2));
+	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::BucketSize(1,16, 2, 2),2,2);
 	network.addayer(_4_pooingLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer 5
 	std::shared_ptr<EasyCNN::FullconnectLayer> _5_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_5_fullconnectLayer->setOutpuBuckerSize(EasyCNN::BucketSize(512, 1, 1));
+	_5_fullconnectLayer->setOutpuBuckerSize(EasyCNN::BucketSize(1,512, 1, 1));
 	_5_fullconnectLayer->setParamaters(true);
 	network.addayer(_5_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer 6
 	std::shared_ptr<EasyCNN::FullconnectLayer> _6_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_6_fullconnectLayer->setOutpuBuckerSize(EasyCNN::BucketSize(10, 1, 1));
+	_6_fullconnectLayer->setOutpuBuckerSize(EasyCNN::BucketSize(1,10, 1, 1));
 	_6_fullconnectLayer->setParamaters(true);
 	network.addayer(_6_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//soft max layer 6
 	std::shared_ptr<EasyCNN::SoftmaxLayer> _7_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
 	network.addayer(_7_softmaxLayer);
-	network.addayer(std::make_shared<EasyCNN::SigmodLayer>());
 
 	//train
 	int idx = 0;
-	std::shared_ptr<EasyCNN::DataBucket> inputDataBucket = std::make_shared<EasyCNN::DataBucket>(EasyCNN::BucketSize(channels,width,height));
+	std::shared_ptr<EasyCNN::DataBucket> inputDataBucket = std::make_shared<EasyCNN::DataBucket>(EasyCNN::BucketSize(num, channels, width, height));
 	while (true)
 	{
 		std::cout << "\nidx = " << idx++ << std::endl;		
 		//TODO : load data
 		network.forward(inputDataBucket);
 		network.backward();
+		if (idx > 10)
+		{
+			break;
+		}
 	}
 	return 0;
 }

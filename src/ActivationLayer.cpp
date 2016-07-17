@@ -29,14 +29,20 @@ void EasyCNN::SigmodLayer::forward(const std::shared_ptr<DataBucket> prevDataBuc
 
 	const data_type* prevRawData = prevDataBucket->getData().get();
 	data_type* nextRawData = nextDataBucket->getData().get();
-	for (int oc = 0; oc < outputSize.channels;oc++)
+	for (int on = 0; on < outputSize.number; on++)
 	{
-		for (int oh = 0; oh < outputSize.height;oh++)
+		for (int oc = 0; oc < outputSize.channels; oc++)
 		{
-			for (int ow = 0; ow < outputSize.width;ow++)
+			for (int oh = 0; oh < outputSize.height; oh++)
 			{
-				const int idx = oc*outputSize.height*outputSize.width + oh*outputSize.width + ow;
-				nextRawData[oc] = sigmodOperator(prevRawData[oc]);
+				for (int ow = 0; ow < outputSize.width; ow++)
+				{
+					const int idx = on*outputSize.channels*outputSize.height*outputSize.width +
+						oc*outputSize.height*outputSize.width + 
+						oh*outputSize.width + 
+						ow;
+					nextRawData[idx] = sigmodOperator(prevRawData[idx]);
+				}
 			}
 		}
 	}
@@ -76,14 +82,20 @@ void EasyCNN::TanhLayer::forward(const std::shared_ptr<DataBucket> prevDataBucke
 
 	const data_type* prevRawData = prevDataBucket->getData().get();
 	data_type* nextRawData = nextDataBucket->getData().get();
-	for (int oc = 0; oc < outputSize.channels; oc++)
+	for (int on = 0; on < outputSize.number; on++)
 	{
-		for (int oh = 0; oh < outputSize.height; oh++)
+		for (int oc = 0; oc < outputSize.channels; oc++)
 		{
-			for (int ow = 0; ow < outputSize.width; ow++)
+			for (int oh = 0; oh < outputSize.height; oh++)
 			{
-				const int idx = oc*outputSize.height*outputSize.width + oh*outputSize.width + ow;
-				nextRawData[oc] = tanhOperator(prevRawData[oc]);
+				for (int ow = 0; ow < outputSize.width; ow++)
+				{
+					const int idx = on*outputSize.channels*outputSize.height*outputSize.width +
+						oc*outputSize.height*outputSize.width +
+						oh*outputSize.width +
+						ow;
+					nextRawData[idx] = tanhOperator(prevRawData[idx]);
+				}
 			}
 		}
 	}
@@ -120,14 +132,20 @@ void EasyCNN::ReluLayer::forward(const std::shared_ptr<DataBucket> prevDataBucke
 
 	const data_type* prevRawData = prevDataBucket->getData().get();
 	data_type* nextRawData = nextDataBucket->getData().get();
-	for (int oc = 0; oc < outputSize.channels; oc++)
+	for (int on = 0; on < outputSize.number; on++)
 	{
-		for (int oh = 0; oh < outputSize.height; oh++)
+		for (int oc = 0; oc < outputSize.channels; oc++)
 		{
-			for (int ow = 0; ow < outputSize.width; ow++)
+			for (int oh = 0; oh < outputSize.height; oh++)
 			{
-				const int idx = oc*outputSize.height*outputSize.width + oh*outputSize.width + ow;
-				nextRawData[oc] = reluOperator(prevRawData[oc]);
+				for (int ow = 0; ow < outputSize.width; ow++)
+				{
+					const int idx = on*outputSize.channels*outputSize.height*outputSize.width +
+						oc*outputSize.height*outputSize.width +
+						oh*outputSize.width +
+						ow;
+					nextRawData[idx] = reluOperator(prevRawData[idx]);
+				}
 			}
 		}
 	}

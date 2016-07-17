@@ -10,10 +10,13 @@ namespace EasyCNN
 	{
 	public:
 		BucketSize() = default;
-		BucketSize(const int _channels, const int _width, const int _height)
-			:channels(_channels), width(_width), height(_height){}
-		inline int totalSize() const { return channels*width*height; }
-		inline bool operator==(const BucketSize& other) const{ return other.channels == channels && other.width == width && other.height == height; }
+		BucketSize(const int _number,const int _channels, const int _width, const int _height)
+			:number(_number),channels(_channels), width(_width), height(_height){}
+		inline int totalSize() const { return number*channels*width*height; }
+		inline bool operator==(const BucketSize& other) const{ 
+			return other.number == number && other.channels == channels && other.width == width && other.height == height;
+		}
+		int number = 0;
 		int channels = 0;
 		int width = 0;
 		int height = 0;

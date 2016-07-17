@@ -6,6 +6,7 @@
 #include "EasyCNN/EasyAssert.h"
 //layers
 #include "EasyCNN/Layer.h"
+#include "EasyCNN/DataBucket.h"
 #include "EasyCNN/ActivationLayer.h"
 #include "EasyCNN/InputLayer.h"
 #include "EasyCNN/ConvolutionLayer.h"

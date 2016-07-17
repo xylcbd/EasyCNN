@@ -23,7 +23,7 @@ EasyCNN::NetWork::~NetWork()
 void EasyCNN::NetWork::setInputSize(const BucketSize size)
 {
 	EASYCNN_LOG_VERBOSE("NetWork setInputSize begin.");
-	easyAssert(size.channels >= 1 && size.width > 0 && size.height > 0,"parameter invalidate.");
+	easyAssert(size.number > 0 && size.channels > 0 && size.width > 0 && size.height > 0, "parameter invalidate.");
 	easyAssert(dataBuckets.empty(), "dataBuckets must be empty now!");
 	std::shared_ptr<DataBucket> dataBucket = std::make_shared<DataBucket>(size);
 	dataBuckets.push_back(dataBucket);
