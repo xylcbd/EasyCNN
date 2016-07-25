@@ -6,14 +6,14 @@
 
 namespace EasyCNN
 {
-	struct BucketSize
+	struct DataSize
 	{
 	public:
-		BucketSize() = default;
-		BucketSize(const int _number,const int _channels, const int _width, const int _height)
+		DataSize() = default;
+		DataSize(const int _number,const int _channels, const int _width, const int _height)
 			:number(_number),channels(_channels), width(_width), height(_height){}
-		inline int totalSize() const { return number*channels*width*height; }
-		inline bool operator==(const BucketSize& other) const{ 
+		inline size_t totalSize() const { return number*channels*width*height; }
+		inline bool operator==(const DataSize& other) const{ 
 			return other.number == number && other.channels == channels && other.width == width && other.height == height;
 		}
 		int number = 0;
@@ -24,13 +24,13 @@ namespace EasyCNN
 	class DataBucket
 	{
 	public:
-		DataBucket(const BucketSize _size);
+		DataBucket(const DataSize _size);
 		virtual ~DataBucket();		
-		BucketSize getSize() const;
-		std::shared_ptr<data_type> getData() const;
+		DataSize getSize() const;
+		std::shared_ptr<float> getData() const;
 		void cloneTo(DataBucket& target);
 	private:
-		BucketSize size;
-		std::shared_ptr<data_type> data;
+		DataSize size;
+		std::shared_ptr<float> data;
 	};
 }

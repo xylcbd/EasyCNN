@@ -18,8 +18,8 @@ namespace EasyCNN
 		virtual void forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
 		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket);
 	private:
-		std::shared_ptr<DataBucket> weightsData;
+		std::shared_ptr<ParamBucket> weightsData;
 		bool enabledBias = false;
-		std::shared_ptr<DataBucket> biasData;
+		std::shared_ptr<ParamBucket> biasData;
 	};
 }

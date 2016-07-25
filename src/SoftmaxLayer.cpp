@@ -16,25 +16,25 @@ std::string EasyCNN::SoftmaxLayer::getLayerType() const
 }
 void EasyCNN::SoftmaxLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const BucketSize inputSize = getInputBucketSize();
-	const BucketSize outputSize = getOutputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
+	const DataSize outputSize = getOutputBucketSize();
 	easyAssert(inputSize == outputSize, "outputSize must be equals with inputSize.");
 	easyAssert(outputSize.number >0 && outputSize.channels > 0 && outputSize.width == 1 && outputSize.height == 1,
 		"outputSize is invalidate.");
 
-	for (int in = 0; in < inputSize.number;in++)
+	for (int on = 0; on < outputSize.number; on++)
 	{
-		const data_type* prevRawData = prevDataBucket->getData().get() + in*inputSize.channels*inputSize.height*inputSize.width;
-		data_type* nextRawData = nextDataBucket->getData().get() + in*outputSize.channels*outputSize.height*outputSize.width;
+		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize.channels*inputSize.height*inputSize.width;
+		float* nextRawData = nextDataBucket->getData().get() + on*outputSize.channels*outputSize.height*outputSize.width;
 
 		//step1 : find max value
-		data_type maxVal = prevRawData[0];
+		float maxVal = prevRawData[0];
 		for (int ic = 0; ic < inputSize.channels; ic++)
 		{
 			maxVal = std::max(maxVal, prevRawData[ic]);
 		}
 		//step2 : sum
-		data_type sum = 0;
+		float sum = 0;
 		for (int ic = 0; ic < inputSize.channels; ic++)
 		{
 			nextRawData[ic] = std::exp(prevRawData[ic] - maxVal);
@@ -43,7 +43,7 @@ void EasyCNN::SoftmaxLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 		//step3 : div
 		for (int ic = 0; ic < inputSize.channels; ic++)
 		{
-			nextRawData[ic] = nextRawData[ic] / maxVal;
+			nextRawData[ic] = nextRawData[ic] / sum;
 		}
 	}
 }

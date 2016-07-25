@@ -13,9 +13,9 @@ namespace EasyCNN
 		virtual ~NetWork();
 		void addayer(std::shared_ptr<Layer> layer);
 	public:
-		void setInputSize(const BucketSize size);
+		void setInputSize(const DataSize size);
 		void forward(const std::shared_ptr<DataBucket> inputDataBucket);
-		void backward();		
+		void backward(std::shared_ptr<EasyCNN::DataBucket> labelDataBucket);
 	private:
 		std::vector<std::shared_ptr<Layer>> layers;
 		std::vector<std::shared_ptr<DataBucket>> dataBuckets;

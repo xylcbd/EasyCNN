@@ -1,4 +1,5 @@
 #include "EasyCNN/FullconnectLayer.h"
+#include "EasyCNN/CommonTools.h"
 
 EasyCNN::FullconnectLayer::FullconnectLayer()
 {
@@ -19,34 +20,36 @@ void EasyCNN::FullconnectLayer::setParamaters(const bool _enabledBias)
 }
 void EasyCNN::FullconnectLayer::solveInnerParams()
 {
-	const BucketSize inputSize = getInputBucketSize();
-	const BucketSize outputSize = getOutputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
+	const DataSize outputSize = getOutputBucketSize();
 	easyAssert(inputSize.number > 0 && inputSize.channels > 0 && inputSize.width > 0 && inputSize.height > 0, "input size or step is invalidate.");
 	easyAssert(outputSize.number > 0 && outputSize.channels > 0 && outputSize.width == 1 && outputSize.height == 1, "output size is invalidate.");
-	weightsData.reset(new DataBucket(BucketSize(1,inputSize.totalSize()*outputSize.totalSize(),1, 1)));
+	weightsData.reset(new ParamBucket(ParamSize(1,(inputSize.totalSize()*outputSize.totalSize())/(inputSize.number*outputSize.number),1, 1)));
+	normal_distribution_init(weightsData->getData().get(), weightsData->getSize().totalSize(), 0.0f, 01.f);
 	if (enabledBias)
 	{
-		biasData.reset(new DataBucket(BucketSize(1,outputSize.channels,1, 1)));
+		biasData.reset(new ParamBucket(ParamSize(1, outputSize.channels, 1, 1)));
+		const_distribution_init(biasData->getData().get(), biasData->getSize().totalSize(), 0.0f);
 	}
 }
 void EasyCNN::FullconnectLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const BucketSize inputSize = getInputBucketSize();
-	const BucketSize outputSize = getOutputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
+	const DataSize outputSize = getOutputBucketSize();
 	easyAssert(nextDataBucket->getSize() == outputSize, "outputSize must be equals with nextDataBucket's size.");
 	easyAssert(outputSize.number > 0 && outputSize.channels > 0 && outputSize.width == 1 && outputSize.height == 1,
 		"outputSize is invalidate.");
 
-	const data_type* weightsRawData = weightsData->getData().get();
-	const data_type* biasRawData = enabledBias ? biasData->getData().get() : nullptr;
+	const float* weightsRawData = weightsData->getData().get();
+	const float* biasRawData = biasData->getData().get();
 	for (int on = 0; on < outputSize.number;on++)
 	{
-		const data_type* prevRawData = prevDataBucket->getData().get() + on*inputSize.channels*inputSize.height*inputSize.width;
-		data_type* nextRawData = nextDataBucket->getData().get() + on*outputSize.channels*outputSize.height*outputSize.width;
+		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize.channels*inputSize.height*inputSize.width;
+		float* nextRawData = nextDataBucket->getData().get() + on*outputSize.channels*outputSize.height*outputSize.width;
 		for (int oc = 0; oc < outputSize.channels; oc++)
 		{
-			const int outIdx = oc*outputSize.height*outputSize.width;
-			data_type sum = 0;
+			const int outIdx = oc;
+			float sum = 0;
 			for (int ic = 0; ic < inputSize.channels; ic++)
 			{
 				for (int ih = 0; ih < inputSize.height; ih++)

@@ -1,10 +1,10 @@
 #include "EasyCNN/Layer.h"
 
-void EasyCNN::Layer::setInputBucketSize(const EasyCNN::BucketSize size)
+void EasyCNN::Layer::setInputBucketSize(const EasyCNN::DataSize size)
 {
 	inputSize = size;
 }
-EasyCNN::BucketSize EasyCNN::Layer::getInputBucketSize() const
+EasyCNN::DataSize EasyCNN::Layer::getInputBucketSize() const
 {
 	return inputSize;
 }
@@ -12,11 +12,11 @@ void EasyCNN::Layer::solveInnerParams()
 {
 	outputSize = inputSize;
 }
-void EasyCNN::Layer::setOutpuBuckerSize(const BucketSize size)
+void EasyCNN::Layer::setOutpuBuckerSize(const DataSize size)
 {
 	outputSize = size;
 }
-EasyCNN::BucketSize EasyCNN::Layer::getOutputBucketSize() const
+EasyCNN::DataSize EasyCNN::Layer::getOutputBucketSize() const
 {
 	return outputSize;
 }

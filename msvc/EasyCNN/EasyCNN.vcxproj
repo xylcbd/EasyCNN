@@ -83,6 +83,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\header\EasyCNN\ActivationLayer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\CommonTools.h" />
     <ClInclude Include="..\..\header\EasyCNN\Configure.h" />
     <ClInclude Include="..\..\header\EasyCNN\ConvolutionLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\DataBucket.h" />
@@ -93,6 +94,7 @@
     <ClInclude Include="..\..\header\EasyCNN\NetWork.h" />
     <ClInclude Include="..\..\header\EasyCNN\FullconnectLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\Layer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\ParamBucket.h" />
     <ClInclude Include="..\..\header\EasyCNN\PoolingLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\SoftmaxLayer.h" />
     <ClCompile Include="..\..\src\EasyAssert.cpp">
@@ -107,6 +109,7 @@
     <ClCompile Include="..\..\src\InputLayer.cpp" />
     <ClCompile Include="..\..\src\Layer.cpp" />
     <ClCompile Include="..\..\src\NetWork.cpp" />
+    <ClCompile Include="..\..\src\ParamBucket.cpp" />
     <ClCompile Include="..\..\src\PoolingLayer.cpp" />
     <ClCompile Include="..\..\src\SoftmaxLayer.cpp" />
   </ItemGroup>
