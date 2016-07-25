@@ -3,12 +3,66 @@
 #include "EasyCNN/EasyCNN.h"
 #include "mnist_data_loader.h"
 
-static void train()
+static bool fetch_data(const std::vector<image_t>& images,std::shared_ptr<EasyCNN::DataBucket> inputDataBucket, 
+	const std::vector<label_t>& labels, std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
+	const size_t offset, const size_t length)
 {
-	//train
-	const std::string mnist_train_images_file = "../res/mnist_data/train-images.idx3-ubyte";
-	const std::string mnist_train_labels_file = "../res/mnist_data/train-labels.idx1-ubyte";
+	assert(images.size() == labels.size() && inputDataBucket->getSize().number == labelDataBucket->getSize().number);
+	if (offset >= images.size())
+	{
+		return false;
+	}
+	size_t actualEndPos = offset + length;
+	if (actualEndPos > images.size())
+	{
+		//image data
+		auto inputDataSize = inputDataBucket->getSize();
+		inputDataSize.number = images.size() - offset;
+		actualEndPos = offset + inputDataSize.number;
+		inputDataBucket.reset(new EasyCNN::DataBucket(inputDataSize));
+		//label data
+		auto labelDataSize = labelDataBucket->getSize();
+		labelDataSize.number = inputDataSize.number;
+		labelDataBucket.reset(new EasyCNN::DataBucket(inputDataSize));
+	}
+	//copy
+	const size_t sizePerImage = inputDataBucket->getSize().totalSize() / inputDataBucket->getSize().number;
+	const size_t sizePerLabel = labelDataBucket->getSize().totalSize() / labelDataBucket->getSize().number;
+	assert(sizePerImage == images[0].channels*images[0].width*images[0].height);
+	//scale to 0.0f~1.0f
+	const float scaleRate = 1.0f / 256.0f;
+	for (size_t i = offset; i < actualEndPos; i++)
+	{
+		//image data
+		float* inputData = inputDataBucket->getData().get() + (i - offset)*sizePerImage;
+		const uint8_t* imageData = &images[i].data[0];
+		for (size_t j = 0; j < sizePerImage;j++)
+		{
+			inputData[j] = (float)imageData[j] * scaleRate;
+		}
+		//label data
+		float* labelData = labelDataBucket->getData().get() + (i - offset)*sizePerLabel;
+		const uint8_t label = labels[i].data;
+		for (size_t j = 0; j < sizePerLabel; j++)
+		{
+			if (j == label)
+			{
+				labelData[j] = 1.0f;
+			}
+			else
+			{
+				labelData[j] = 0.0f;
+			}			
+		}
+	}
+	return true;
+}
+int main(int argc, char* argv[])
+{
+	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";
+	const std::string mnist_train_labels_file = "../../res/mnist_data/train-labels.idx1-ubyte";
 	bool success = false;
+
 	//load train images
 	std::vector<image_t> images;
 	success = load_mnist_images(mnist_train_images_file, images);
@@ -18,70 +72,58 @@ static void train()
 	success = load_mnist_labels(mnist_train_labels_file, labels);
 	assert(success && labels.size() > 0);
 	assert(images.size() == labels.size());
-	//TODO
-}
-static void test()
-{
-	//test
-	const std::string mnist_test_images_file = "../res/mnist_data/t10k-images.idx3-ubyte";
-	const std::string mnist_test_labels_file = "../res/mnist_data/t10k-labels.idx1-ubyte";
-	bool success = false;
-	//load train images
-	std::vector<image_t> images;
-	success = load_mnist_images(mnist_test_images_file, images);
-	assert(success && images.size() > 0);
-	//load train labels
-	std::vector<label_t> labels;
-	success = load_mnist_labels(mnist_test_labels_file, labels);
-	assert(success && labels.size() > 0);
-	assert(images.size() == labels.size());
-	//TODO
-}
+	//train data & validate data
+	//train
+	std::vector<image_t> train_images(static_cast<size_t>(images.size()*0.8f));
+	std::vector<label_t> train_labels(static_cast<size_t>(labels.size()*0.8f));
+	std::copy(images.begin(), images.begin() + train_images.size(), train_images.begin());
+	std::copy(labels.begin(), labels.begin() + train_labels.size(), train_labels.begin());
+	//validate
+	std::vector<image_t> validate_images(images.size() - train_images.size());
+	std::vector<label_t> validate_labels(labels.size() - train_labels.size());
+	std::copy(images.begin() + train_images.size(), images.end(), validate_images.begin());
+	std::copy(labels.begin() + train_labels.size(), labels.end(), validate_labels.begin());
 
-int main(int argc, char* argv[])
-{
-// 	train();
-// 	test();
-
-	const int num = 1;
-	const int channels = 1;
-	const int width = 32;
-	const int height = 32;	
+	const int epoch = 10;
+	const int batch = 64;
+	const int channels = images[0].channels;
+	const int width = images[0].width;
+	const int height = images[0].height;
 
 	EasyCNN::NetWork network;
-	network.setInputSize(EasyCNN::BucketSize(1,channels, width, height));
+	network.setInputSize(EasyCNN::DataSize(batch,channels, width, height));
 	//input data layer 0
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
 	//convolution layer 1
 	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());	
-	_1_convLayer->setParamaters(EasyCNN::BucketSize(6,1,5,5),1,1, true);
+	_1_convLayer->setParamaters(EasyCNN::ParamSize(6,1,5,5),1,1, true);
 	network.addayer(_1_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 2
 	std::shared_ptr<EasyCNN::PoolingLayer> _2_poolingLayer(std::make_shared<EasyCNN::PoolingLayer>());
-	_2_poolingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::BucketSize(1,6, 2, 2),2,2);
+	_2_poolingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 6, 2, 2), 2, 2);
 	network.addayer(_2_poolingLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//convolution layer 3
 	std::shared_ptr<EasyCNN::ConvolutionLayer> _3_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
-	_3_convLayer->setParamaters(EasyCNN::BucketSize(16,1,5, 5), 1,1, true);
+	_3_convLayer->setParamaters(EasyCNN::ParamSize(16, 6, 5, 5), 1, 1, true);
 	network.addayer(_3_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 4
 	std::shared_ptr<EasyCNN::PoolingLayer> _4_pooingLayer(std::make_shared<EasyCNN::PoolingLayer>());
-	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::BucketSize(1,16, 2, 2),2,2);
+	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 16, 2, 2), 2, 2);
 	network.addayer(_4_pooingLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer 5
 	std::shared_ptr<EasyCNN::FullconnectLayer> _5_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_5_fullconnectLayer->setOutpuBuckerSize(EasyCNN::BucketSize(1,512, 1, 1));
+	_5_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 512, 1, 1));
 	_5_fullconnectLayer->setParamaters(true);
 	network.addayer(_5_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer 6
 	std::shared_ptr<EasyCNN::FullconnectLayer> _6_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_6_fullconnectLayer->setOutpuBuckerSize(EasyCNN::BucketSize(1,10, 1, 1));
+	_6_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 10, 1, 1));
 	_6_fullconnectLayer->setParamaters(true);
 	network.addayer(_6_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
@@ -90,18 +132,24 @@ int main(int argc, char* argv[])
 	network.addayer(_7_softmaxLayer);
 
 	//train
-	int idx = 0;
-	std::shared_ptr<EasyCNN::DataBucket> inputDataBucket = std::make_shared<EasyCNN::DataBucket>(EasyCNN::BucketSize(num, channels, width, height));
-	while (true)
+	std::shared_ptr<EasyCNN::DataBucket> inputDataBucket = std::make_shared<EasyCNN::DataBucket>(EasyCNN::DataSize(batch, channels, width, height));
+	std::shared_ptr<EasyCNN::DataBucket> labelDataBucket = std::make_shared<EasyCNN::DataBucket>(EasyCNN::DataSize(batch, 10, 1, 1));
+	int epochIdx = 0;
+	while (epochIdx < epoch)
 	{
-		std::cout << "\nidx = " << idx++ << std::endl;		
-		//TODO : load data
-		network.forward(inputDataBucket);
-		network.backward();
-		if (idx > 10)
+		size_t offset = 0;
+		while (true)
 		{
-			break;
+			if (!fetch_data(train_images, inputDataBucket, train_labels, labelDataBucket, offset, batch))
+			{
+				break;
+			}			
+			network.forward(inputDataBucket);
+			network.backward(labelDataBucket);			
+			offset += batch;
 		}
+		//TODO : test on validate data & get loss / accuracy
+		std::cout << "\nepoch : " << epochIdx++ << std::endl;
 	}
 	return 0;
 }

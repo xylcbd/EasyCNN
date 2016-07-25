@@ -15,20 +15,20 @@ std::string EasyCNN::SigmodLayer::getLayerType() const
 	return layerType;
 }
 //f(x)=1/(1+e^(-x))
-static inline EasyCNN::data_type sigmodOperator(const EasyCNN::data_type x)
+static inline float sigmodOperator(const float x)
 {
-	EasyCNN::data_type result = 0;
+	float result = 0;
 	result = 1.0f / (1.0f + std::exp(-1.0f*x));
 	return result;
 }
 void EasyCNN::SigmodLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const BucketSize inputSize = getInputBucketSize();
-	const BucketSize outputSize = getOutputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
+	const DataSize outputSize = getOutputBucketSize();
 	easyAssert(inputSize == outputSize, "outputSize must be equals with inputSize.");
 
-	const data_type* prevRawData = prevDataBucket->getData().get();
-	data_type* nextRawData = nextDataBucket->getData().get();
+	const float* prevRawData = prevDataBucket->getData().get();
+	float* nextRawData = nextDataBucket->getData().get();
 	for (int on = 0; on < outputSize.number; on++)
 	{
 		for (int oc = 0; oc < outputSize.channels; oc++)
@@ -66,22 +66,22 @@ std::string EasyCNN::TanhLayer::getLayerType() const
 	return layerType;
 }
 //f(x)=(e^x-e^(-x))/(e^x+e^(-x))
-static inline EasyCNN::data_type tanhOperator(const EasyCNN::data_type x)
+static inline float tanhOperator(const float x)
 {
-	EasyCNN::data_type result = 0;
-	const EasyCNN::data_type ex = std::exp(x);
-	const EasyCNN::data_type efx = std::exp(-x);
+	float result = 0;
+	const float ex = std::exp(x);
+	const float efx = std::exp(-x);
 	result = (ex - efx) / (ex + efx);
 	return result;
 }
 void EasyCNN::TanhLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const BucketSize inputSize = getInputBucketSize();
-	const BucketSize outputSize = getOutputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
+	const DataSize outputSize = getOutputBucketSize();
 	easyAssert(inputSize == outputSize, "outputSize must be equals with inputSize.");
 
-	const data_type* prevRawData = prevDataBucket->getData().get();
-	data_type* nextRawData = nextDataBucket->getData().get();
+	const float* prevRawData = prevDataBucket->getData().get();
+	float* nextRawData = nextDataBucket->getData().get();
 	for (int on = 0; on < outputSize.number; on++)
 	{
 		for (int oc = 0; oc < outputSize.channels; oc++)
@@ -119,19 +119,19 @@ std::string EasyCNN::ReluLayer::getLayerType() const
 	return layerType;
 }
 //f(x)=max(x,0)
-static inline EasyCNN::data_type reluOperator(const EasyCNN::data_type x)
+static inline float reluOperator(const float x)
 {
-	EasyCNN::data_type result = std::max(x, 0.0f);
+	float result = std::max(x, 0.0f);
 	return result;
 }
 void EasyCNN::ReluLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const BucketSize inputSize = getInputBucketSize();
-	const BucketSize outputSize = getOutputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
+	const DataSize outputSize = getOutputBucketSize();
 	easyAssert(inputSize == outputSize, "outputSize must be equals with inputSize.");
 
-	const data_type* prevRawData = prevDataBucket->getData().get();
-	data_type* nextRawData = nextDataBucket->getData().get();
+	const float* prevRawData = prevDataBucket->getData().get();
+	float* nextRawData = nextDataBucket->getData().get();
 	for (int on = 0; on < outputSize.number; on++)
 	{
 		for (int oc = 0; oc < outputSize.channels; oc++)

@@ -9,7 +9,7 @@ EasyCNN::PoolingLayer::~PoolingLayer()
 {
 
 }
-void EasyCNN::PoolingLayer::setParamaters(const PoolingType _poolingType, const BucketSize _poolingKernelSize,const int _widthStep, const int _heightStep)
+void EasyCNN::PoolingLayer::setParamaters(const PoolingType _poolingType, const ParamSize _poolingKernelSize,const int _widthStep, const int _heightStep)
 {
 	easyAssert(_poolingKernelSize.number ==1 && _poolingKernelSize.channels > 0 && _poolingKernelSize.width > 1 && _poolingKernelSize.height > 1 && _widthStep>0 && _heightStep>0,
 		"parameters invalidate.");
@@ -26,13 +26,13 @@ std::string EasyCNN::PoolingLayer::getLayerType() const
 void EasyCNN::PoolingLayer::solveInnerParams()
 {
 	easyAssert(poolingKernelSize.number > 0 && poolingKernelSize.channels > 0 && poolingKernelSize.width > 1 && poolingKernelSize.height > 1, "poolingKernelSize parameters invalidate.");
-	const BucketSize inputSize = getInputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
 	poolingKernelSize.number = 1;
 	poolingKernelSize.channels = inputSize.channels;
 	easyAssert(inputSize.number && poolingKernelSize.number && inputSize.channels == poolingKernelSize.channels &&
 		inputSize.width > poolingKernelSize.width && inputSize.height > poolingKernelSize.height, 
 		"poolingKernelSize parameters invalidate.");
-	BucketSize outputSize;
+	DataSize outputSize;
 	outputSize.number = inputSize.number;
 	outputSize.channels = inputSize.channels;
 	outputSize.width = (inputSize.width-poolingKernelSize.width)/widthStep+1;
@@ -41,16 +41,16 @@ void EasyCNN::PoolingLayer::solveInnerParams()
 }
 void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const BucketSize inputSize = getInputBucketSize();
-	const BucketSize outputSize = getOutputBucketSize();
+	const DataSize inputSize = getInputBucketSize();
+	const DataSize outputSize = getOutputBucketSize();
 	easyAssert(inputSize.number == outputSize.number && inputSize.channels == outputSize.channels &&
 		inputSize.height >= outputSize.height && inputSize.width >= outputSize.height, "input size & output size is invalidate.");
 	easyAssert(nextDataBucket->getSize() == outputSize, "outputSize must be equals with nextDataBucket's size.");
 
 	for (int on = 0; on < outputSize.number;on++)
 	{
-		const data_type* prevRawData = prevDataBucket->getData().get() + on*inputSize.channels*inputSize.height*inputSize.width;
-		data_type* nextRawData = nextDataBucket->getData().get() + on*outputSize.channels*outputSize.height*outputSize.width;
+		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize.channels*inputSize.height*inputSize.width;
+		float* nextRawData = nextDataBucket->getData().get() + on*outputSize.channels*outputSize.height*outputSize.width;
 		for (int oc = 0; oc < outputSize.channels; oc++)
 		{
 			for (int oh = 0; oh < outputSize.height; oh++)
@@ -60,7 +60,7 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 					const int inStartX = ow*widthStep;
 					const int inStartY = oh*heightStep;
 					const int outIdx = oc*outputSize.height*outputSize.width + oh*outputSize.width + ow;
-					data_type result = 0;
+					float result = 0;
 					if (poolingType == PoolingType::MaxPooling)
 					{
 						for (int ph = 0; ph < poolingKernelSize.height; ph++)
