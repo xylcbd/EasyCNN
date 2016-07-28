@@ -78,10 +78,8 @@ void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDa
 						{
 							for (int kw = 0; kw < kernelSize.width; kw++)
 							{
-								const int inIdx = ic*inputSize.height*inputSize.width +
-									(inStartY + kh)*inputSize.width +
-									(inStartX + kw);
-								const int kernelIdx = ic*kernelSize.height*kernelSize.width + kh*kernelSize.width + kw;
+								const int inIdx = inputSize.getIndex(ic,inStartY+kh,inStartX+kw);
+								const int kernelIdx = kernelSize.getIndex(ic, kh, kw);
 								sum += prevRawData[inIdx] * kernelRawData[kernelIdx];
 							}
 						}
@@ -96,7 +94,7 @@ void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDa
 		}
 	}
 }
-void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket)
+void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
 {
 
 }
