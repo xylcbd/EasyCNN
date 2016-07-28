@@ -1,3 +1,4 @@
+#include <algorithm>
 //configure
 #include "EasyCNN/Configure.h"
 //layers
@@ -61,23 +62,33 @@ void EasyCNN::NetWork::backward(std::shared_ptr<EasyCNN::DataBucket> labelDataBu
 	float loss = 0.0f;
 	for (size_t i = 0; i < lastOutputData->getSize().totalSize();i++)
 	{
-		loss += labelData[i] * std::log(outputData[i]);
+		loss -= labelData[i] * std::log(outputData[i]);
 	}
-	loss *= -1.0f;
 	EASYCNN_LOG_VERBOSE("loss = %f", loss);
 
-	for (size_t i = 0; i < layers.size();i++)
+	//////////////////////////////////////////////////////////////////////////
+	//label layer backward
+	std::shared_ptr<DataBucket>& nextDiffBucket(std::make_shared<DataBucket>(lastOutputData->getSize()));
+	float* nextDiff = nextDiffBucket->getData().get();
+	for (size_t i = 0; i < nextDiffBucket->getSize().totalSize(); i++)
+	{
+		nextDiff[i] = -labelData[i] * 1.0f/(outputData[i]);
+	}
+	
+	//other layer backward
+	for (size_t i = layers.size()-1; i >= 0; i--)
 	{
 		EASYCNN_LOG_VERBOSE("NetWork layer[%d](%s) backward begin.",i,layers[i]->getLayerType().c_str());
-		layers[i]->backward(dataBuckets[i], dataBuckets[i+1]);
+		layers[i]->setLearningRate(learningRate);
+		layers[i]->backward(dataBuckets[i], dataBuckets[i + 1], nextDiffBucket);
 		EASYCNN_LOG_VERBOSE("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
 	}
-
+	learningRate = std::max(0.0001f, learningRate*decayRate);
 	EASYCNN_LOG_VERBOSE("NetWork backward end.");
 }
 void EasyCNN::NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket)
 {
-	EASYCNN_LOG_VERBOSE("NetWork forward end.");
+	EASYCNN_LOG_VERBOSE("NetWork forward begin.");
 	easyAssert(layers.size() > 1, "layer count is less than 2.");
 	easyAssert(layers[0]->getLayerType() == InputLayer::layerType, "first layer is not input layer.");
 	easyAssert(dataBuckets.size() > 0, "data buckets is not ready.");

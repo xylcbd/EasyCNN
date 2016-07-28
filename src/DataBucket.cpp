@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "EasyCNN/DataBucket.h"
 
 EasyCNN::DataBucket::DataBucket(const DataSize _size)
@@ -8,6 +9,10 @@ EasyCNN::DataBucket::DataBucket(const DataSize _size)
 EasyCNN::DataBucket::~DataBucket()
 {
 
+}
+void EasyCNN::DataBucket::fillData(float item)
+{
+	std::fill(data.get(), data.get() + getSize().totalSize(), item);
 }
 void EasyCNN::DataBucket::cloneTo(DataBucket& target)
 {

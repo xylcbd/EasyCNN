@@ -16,6 +16,12 @@ namespace EasyCNN
 		inline bool operator==(const ParamSize& other) const{
 			return other.number == number && other.channels == channels && other.width == width && other.height == height;
 		}
+		inline int getIdx(const int in, const int ic, const int ih, const int iw){
+			return in*channels*height*width + ic*height*width + ih*width + iw;
+		}
+		inline int getIndex(const int ic, const int ih, const int iw) const{
+			return ic*height*width + ih*width + iw;
+		}
 		int number = 0;
 		int channels = 0;
 		int width = 0;

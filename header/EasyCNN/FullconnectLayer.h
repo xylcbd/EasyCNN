@@ -16,7 +16,7 @@ namespace EasyCNN
 		virtual std::string getLayerType() const;
 		virtual void solveInnerParams();
 		virtual void forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket);
-		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket);
+		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket);
 	private:
 		std::shared_ptr<ParamBucket> weightsData;
 		bool enabledBias = false;

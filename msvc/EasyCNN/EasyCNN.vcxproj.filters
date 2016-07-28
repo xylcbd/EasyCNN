@@ -86,9 +86,6 @@
     <ClCompile Include="..\..\src\PoolingLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Layer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\EasyAssert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

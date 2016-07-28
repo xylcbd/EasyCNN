@@ -19,5 +19,7 @@ namespace EasyCNN
 	private:
 		std::vector<std::shared_ptr<Layer>> layers;
 		std::vector<std::shared_ptr<DataBucket>> dataBuckets;
+		float learningRate = 0.1f;
+		const float decayRate = 0.1f;
 	};
 }

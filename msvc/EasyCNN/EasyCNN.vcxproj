@@ -107,7 +107,6 @@
     <ClCompile Include="..\..\src\DataBucket.cpp" />
     <ClCompile Include="..\..\src\FullconnectLayer.cpp" />
     <ClCompile Include="..\..\src\InputLayer.cpp" />
-    <ClCompile Include="..\..\src\Layer.cpp" />
     <ClCompile Include="..\..\src\NetWork.cpp" />
     <ClCompile Include="..\..\src\ParamBucket.cpp" />
     <ClCompile Include="..\..\src\PoolingLayer.cpp" />

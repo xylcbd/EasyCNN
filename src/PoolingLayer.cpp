@@ -59,7 +59,7 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 				{
 					const int inStartX = ow*widthStep;
 					const int inStartY = oh*heightStep;
-					const int outIdx = oc*outputSize.height*outputSize.width + oh*outputSize.width + ow;
+					const int outIdx = outputSize.getIndex(oc, oh, ow);
 					float result = 0;
 					if (poolingType == PoolingType::MaxPooling)
 					{
@@ -67,7 +67,7 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 						{
 							for (int pw = 0; pw < poolingKernelSize.width; pw++)
 							{
-								const int inIdx = oc*inputSize.height*inputSize.width + (inStartY + ph)*inputSize.width + (inStartX + pw);
+								const int inIdx = inputSize.getIndex(oc, inStartY + ph, inStartX + pw);
 								result = std::max(result, prevRawData[inIdx]);
 							}
 						}
@@ -78,7 +78,7 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 						{
 							for (int pw = 0; pw < poolingKernelSize.width; pw++)
 							{
-								const int inIdx = oc*inputSize.height*inputSize.width + (inStartY + ph)*inputSize.width + (inStartX + pw);
+								const int inIdx = inputSize.getIndex(oc, inStartY + ph, inStartX + pw);
 								result += prevRawData[inIdx];
 							}
 						}
@@ -90,7 +90,7 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 		}//oc
 	}//on
 }
-void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket)
+void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
 {
 
 }
