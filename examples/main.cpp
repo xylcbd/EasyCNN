@@ -26,8 +26,8 @@ static bool fetch_data(const std::vector<image_t>& images,std::shared_ptr<EasyCN
 		labelDataBucket.reset(new EasyCNN::DataBucket(inputDataSize));
 	}
 	//copy
-	const size_t sizePerImage = inputDataBucket->getSize().totalSize() / inputDataBucket->getSize().number;
-	const size_t sizePerLabel = labelDataBucket->getSize().totalSize() / labelDataBucket->getSize().number;
+	const size_t sizePerImage = inputDataBucket->getSize()._3DSize();
+	const size_t sizePerLabel = labelDataBucket->getSize()._3DSize();
 	assert(sizePerImage == images[0].channels*images[0].width*images[0].height);
 	//scale to 0.0f~1.0f
 	const float scaleRate = 1.0f / 256.0f;
@@ -84,11 +84,11 @@ int main(int argc, char* argv[])
 	std::copy(images.begin() + train_images.size(), images.end(), validate_images.begin());
 	std::copy(labels.begin() + train_labels.size(), labels.end(), validate_labels.begin());
 
-	const int epoch = 10;
-	const int batch = 64;
-	const int channels = images[0].channels;
-	const int width = images[0].width;
-	const int height = images[0].height;
+	const size_t epoch = 10;
+	const size_t batch = 64;
+	const size_t channels = images[0].channels;
+	const size_t width = images[0].width;
+	const size_t height = images[0].height;
 
 	EasyCNN::NetWork network;
 	network.setInputSize(EasyCNN::DataSize(batch,channels, width, height));
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 	//train
 	std::shared_ptr<EasyCNN::DataBucket> inputDataBucket = std::make_shared<EasyCNN::DataBucket>(EasyCNN::DataSize(batch, channels, width, height));
 	std::shared_ptr<EasyCNN::DataBucket> labelDataBucket = std::make_shared<EasyCNN::DataBucket>(EasyCNN::DataSize(batch, 10, 1, 1));
-	int epochIdx = 0;
+	size_t epochIdx = 0;
 	while (epochIdx < epoch)
 	{
 		size_t offset = 0;

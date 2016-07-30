@@ -2,7 +2,7 @@
 
 EasyCNN::ParamBucket::ParamBucket(const ParamSize _size)
 	:size(_size),
-	data(new float[size.number*size.channels*size.width*size.height])
+	data(new float[size._4DSize()])
 {
 }
 EasyCNN::ParamBucket::~ParamBucket()
@@ -12,8 +12,12 @@ EasyCNN::ParamBucket::~ParamBucket()
 void EasyCNN::ParamBucket::cloneTo(ParamBucket& target)
 {
 	target.size = this->size;
-	const int dataSize = sizeof(float)*this->size.totalSize();
+	const size_t dataSize = sizeof(float)*this->size._4DSize();
 	memcpy(target.data.get(), this->data.get(), dataSize);
+}
+void EasyCNN::ParamBucket::fillData(const float item)
+{
+	std::fill(data.get(), data.get() + getSize()._4DSize(), item);
 }
 std::shared_ptr<float> EasyCNN::ParamBucket::getData() const
 {
