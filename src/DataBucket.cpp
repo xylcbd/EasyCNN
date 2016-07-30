@@ -3,21 +3,21 @@
 
 EasyCNN::DataBucket::DataBucket(const DataSize _size)
 	:size(_size),
-	data(new float[size.number*size.channels*size.width*size.height])
+	data(new float[size._4DSize()])
 {
 }
 EasyCNN::DataBucket::~DataBucket()
 {
 
 }
-void EasyCNN::DataBucket::fillData(float item)
+void EasyCNN::DataBucket::fillData(const float item)
 {
-	std::fill(data.get(), data.get() + getSize().totalSize(), item);
+	std::fill(data.get(), data.get() + getSize()._4DSize(), item);
 }
 void EasyCNN::DataBucket::cloneTo(DataBucket& target)
 {
 	target.size = this->size;
-	const int dataSize = sizeof(float)*this->size.totalSize();
+	const size_t dataSize = sizeof(float)*this->size._4DSize();
 	memcpy(target.data.get(), this->data.get(), dataSize);
 }
 std::shared_ptr<float> EasyCNN::DataBucket::getData() const

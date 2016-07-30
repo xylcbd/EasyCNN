@@ -17,7 +17,7 @@ void EasyCNN::InputLayer::forward(const std::shared_ptr<DataBucket> prevDataBuck
 {
 	prevDataBucket->cloneTo(*nextDataBucket);
 }
-void EasyCNN::InputLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
+void EasyCNN::InputLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
 	//data layer : nop
 }

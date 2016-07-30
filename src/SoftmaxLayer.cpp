@@ -22,70 +22,72 @@ void EasyCNN::SoftmaxLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 	easyAssert(outputSize.number >0 && outputSize.channels > 0 && outputSize.width == 1 && outputSize.height == 1,
 		"outputSize is invalidate.");
 
-	for (int on = 0; on < outputSize.number; on++)
+	for (size_t on = 0; on < outputSize.number; on++)
 	{
-		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize.channels*inputSize.height*inputSize.width;
-		float* nextRawData = nextDataBucket->getData().get() + on*outputSize.channels*outputSize.height*outputSize.width;
+		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize._3DSize();
+		float* nextRawData = nextDataBucket->getData().get() + on*outputSize._3DSize();
 
 		//step1 : find max value
 		float maxVal = prevRawData[0];
-		for (int ic = 0; ic < inputSize.channels; ic++)
+		for (size_t ic = 0; ic < inputSize._3DSize(); ic++)
 		{
 			maxVal = std::max(maxVal, prevRawData[ic]);
 		}
 		//step2 : sum
 		float sum = 0;
-		for (int ic = 0; ic < inputSize.channels; ic++)
+		for (size_t ic = 0; ic < inputSize._3DSize(); ic++)
 		{
 			nextRawData[ic] = std::exp(prevRawData[ic] - maxVal);
 			sum += nextRawData[ic];
 		}
 		//step3 : div
-		for (int ic = 0; ic < inputSize.channels; ic++)
+		for (size_t ic = 0; ic < inputSize._3DSize(); ic++)
 		{
 			nextRawData[ic] = nextRawData[ic] / sum;
 		}
 	}
 }
-void EasyCNN::SoftmaxLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
+void EasyCNN::SoftmaxLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
+	const ParamSize nextDiffSize = nextDiffBucket->getSize();
 	const float* prevData = prevDataBucket->getData().get();
 	const float* nextData = nextDataBucket->getData().get();
 	const float* nextDiff = nextDiffBucket->getData().get();
-	easyAssert(prevDataSize == nextDataSize, "size must be equal!");
-	easyAssert(nextDiffSize == nextDataSize, "size must be equal!");
+	easyAssert(prevDataSize == nextDataSize, "data size must be equal!");
 
 	//update prevDiff data
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDataSize));
-	prevDiffBucket->fillData(0.0f);
-	const DataSize prevDiffSize = prevDiffBucket->getSize();
+	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	easyAssert(prevDiffSize == nextDiffSize, "diff size must be equal!");
+	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
+	prevDiffBucket->fillData(0.0f);	
 	float* prevDiff = prevDiffBucket->getData().get();
-	for (int pn = 0; pn < prevDiffSize.number;pn++)
+	for (size_t pidx = 0; pidx < prevDiffSize._4DSize(); pidx++)
 	{
-		for (int nc = 0; nc < nextDataSize.channels;nc++)
+		for (size_t nn = 0; nn < nextDataSize.number; nn++)
 		{
-			for (int pc = 0; pc < prevDiffSize.channels;pc++)
+			for (size_t nidx = 0; nidx < nextDataSize._3DSize(); nidx++)
 			{
-				if (nc == pc)
+				const size_t dataIdx = nn*nextDataSize._3DSize() + nidx;
+				if (nidx == pidx)
 				{
-					prevDiff[pc] += nextData[nc] * (1.0f - nextData[nc]);
+					prevDiff[pidx] += nextData[dataIdx] * (1.0f - nextData[dataIdx]);
 				}
 				else
 				{
-					prevDiff[pc] -= nextData[nc] * nextData[pc];
+					prevDiff[pidx] -= nextData[dataIdx] * nextData[dataIdx];
 				}
 			}
 		}
 	}
-	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize();i++)
+	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize();i++)
 	{
 		prevDiff[i] *= nextDiff[i];
-	}
-	nextDiffBucket = prevDiffBucket;
+	}	
 
 	//update this layer's param
 	//softmax layer : nop
+
+	nextDiffBucket = prevDiffBucket;
 }

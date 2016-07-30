@@ -34,52 +34,54 @@ void EasyCNN::SigmodLayer::forward(const std::shared_ptr<DataBucket> prevDataBuc
 
 	const float* prevRawData = prevDataBucket->getData().get();
 	float* nextRawData = nextDataBucket->getData().get();
-	for (int on = 0; on < outputSize.number; on++)
+	for (size_t on = 0; on < outputSize.number; on++)
 	{
-		for (int oc = 0; oc < outputSize.channels; oc++)
+		for (size_t oc = 0; oc < outputSize.channels; oc++)
 		{
-			for (int oh = 0; oh < outputSize.height; oh++)
+			for (size_t oh = 0; oh < outputSize.height; oh++)
 			{
-				for (int ow = 0; ow < outputSize.width; ow++)
+				for (size_t ow = 0; ow < outputSize.width; ow++)
 				{
-					const int idx = outputSize.getIndex(on, oc, oh, oc);
+					const size_t idx = outputSize.getIndex(on, oc, oh, ow);
 					nextRawData[idx] = sigmodOperator(prevRawData[idx]);
 				}
 			}
 		}
 	}
 }
-void EasyCNN::SigmodLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
+void EasyCNN::SigmodLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
+	const ParamSize nextDiffSize = nextDiffBucket->getSize();
 	const float* prevData = prevDataBucket->getData().get();
 	const float* nextData = nextDataBucket->getData().get();
 	const float* nextDiff = nextDiffBucket->getData().get();
 	easyAssert(prevDataSize == nextDataSize, "size must be equal!");
-	easyAssert(nextDiffSize == nextDataSize, "size must be equal!");
 
 	//update prevDiff data
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDataSize));
-	prevDiffBucket->fillData(0.0f);
-	const DataSize prevDiffSize = prevDiffBucket->getSize();
+	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
+	prevDiffBucket->fillData(0.0f);	
 	float* prevDiff = prevDiffBucket->getData().get();
-	for (int pn = 0; pn < prevDiffSize.number; pn++)
+	//calculate current inner diff
+	for (size_t nn = 0; nn < nextDataSize.number; nn++)
 	{
-		for (int pc = 0; pc < prevDiffSize.channels; pc++)
+		for (size_t pc = 0; pc < prevDiffSize.channels; pc++)
 		{
-			for (int ph = 0; ph < prevDiffSize.height; ph++)
+			for (size_t ph = 0; ph < prevDiffSize.height; ph++)
 			{
-				for (int pw = 0; pw < prevDiffSize.width; pw++)
+				for (size_t pw = 0; pw < prevDiffSize.width; pw++)
 				{
-					const int idx = prevDiffSize.getIndex(pn, pc, ph, pc);
-					prevDiff[idx] += sigmodDfOperator(nextData[idx]);
+					const size_t dataIdx = nextDataSize.getIndex(nn, pc, ph, pw);
+					const size_t paramIdx = prevDiffSize.getIndex(pc, ph, pw);
+					prevDiff[paramIdx] += sigmodDfOperator(nextData[dataIdx]);
 				}
 			}
 		}
 	}
-	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
+	//multiply next diff
+	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize(); i++)
 	{
 		prevDiff[i] *= nextDiff[i];
 	}
@@ -124,52 +126,54 @@ void EasyCNN::TanhLayer::forward(const std::shared_ptr<DataBucket> prevDataBucke
 
 	const float* prevRawData = prevDataBucket->getData().get();
 	float* nextRawData = nextDataBucket->getData().get();
-	for (int on = 0; on < outputSize.number; on++)
+	for (size_t on = 0; on < outputSize.number; on++)
 	{
-		for (int oc = 0; oc < outputSize.channels; oc++)
+		for (size_t oc = 0; oc < outputSize.channels; oc++)
 		{
-			for (int oh = 0; oh < outputSize.height; oh++)
+			for (size_t oh = 0; oh < outputSize.height; oh++)
 			{
-				for (int ow = 0; ow < outputSize.width; ow++)
+				for (size_t ow = 0; ow < outputSize.width; ow++)
 				{
-					const int idx = outputSize.getIndex(on, oc, oh, oc);
+					const size_t idx = outputSize.getIndex(on, oc, oh, ow);
 					nextRawData[idx] += tanhOperator(prevRawData[idx]);
 				}
 			}
 		}
 	}
 }
-void EasyCNN::TanhLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
+void EasyCNN::TanhLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
+	const ParamSize nextDiffSize = nextDiffBucket->getSize();
 	const float* prevData = prevDataBucket->getData().get();
 	const float* nextData = nextDataBucket->getData().get();
 	const float* nextDiff = nextDiffBucket->getData().get();
 	easyAssert(prevDataSize == nextDataSize, "size must be equal!");
-	easyAssert(nextDiffSize == nextDataSize, "size must be equal!");
 
 	//update prevDiff data
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDataSize));
+	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
 	prevDiffBucket->fillData(0.0f);
-	const DataSize prevDiffSize = prevDiffBucket->getSize();
 	float* prevDiff = prevDiffBucket->getData().get();
-	for (int pn = 0; pn < prevDiffSize.number; pn++)
+	//calculate current inner diff
+	for (size_t nn = 0; nn < nextDataSize.number; nn++)
 	{
-		for (int pc = 0; pc < prevDiffSize.channels; pc++)
+		for (size_t pc = 0; pc < prevDiffSize.channels; pc++)
 		{
-			for (int ph = 0; ph < prevDiffSize.height; ph++)
+			for (size_t ph = 0; ph < prevDiffSize.height; ph++)
 			{
-				for (int pw = 0; pw < prevDiffSize.width; pw++)
+				for (size_t pw = 0; pw < prevDiffSize.width; pw++)
 				{
-					const int idx = prevDiffSize.getIndex(pn, pc, ph, pc);
-					prevDiff[idx] += tanhDfOperator(nextData[idx]);
+					const size_t dataIdx = nextDataSize.getIndex(nn, pc, ph, pw);
+					const size_t paramIdx = prevDiffSize.getIndex(pc, ph, pw);
+					prevDiff[paramIdx] += tanhDfOperator(nextData[dataIdx]);
 				}
 			}
 		}
 	}
-	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
+	//multiply next diff
+	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize(); i++)
 	{
 		prevDiff[i] *= nextDiff[i];
 	}
@@ -212,52 +216,54 @@ void EasyCNN::ReluLayer::forward(const std::shared_ptr<DataBucket> prevDataBucke
 
 	const float* prevRawData = prevDataBucket->getData().get();
 	float* nextRawData = nextDataBucket->getData().get();
-	for (int on = 0; on < outputSize.number; on++)
+	for (size_t on = 0; on < outputSize.number; on++)
 	{
-		for (int oc = 0; oc < outputSize.channels; oc++)
+		for (size_t oc = 0; oc < outputSize.channels; oc++)
 		{
-			for (int oh = 0; oh < outputSize.height; oh++)
+			for (size_t oh = 0; oh < outputSize.height; oh++)
 			{
-				for (int ow = 0; ow < outputSize.width; ow++)
+				for (size_t ow = 0; ow < outputSize.width; ow++)
 				{
-					const int idx = outputSize.getIndex(on, oc, oh, oc);
+					const size_t idx = outputSize.getIndex(on, oc, oh, ow);
 					nextRawData[idx] = reluOperator(prevRawData[idx]);
 				}
 			}
 		}
 	}
 }
-void EasyCNN::ReluLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
+void EasyCNN::ReluLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
+	const ParamSize nextDiffSize = nextDiffBucket->getSize();
 	const float* prevData = prevDataBucket->getData().get();
 	const float* nextData = nextDataBucket->getData().get();
 	const float* nextDiff = nextDiffBucket->getData().get();
 	easyAssert(prevDataSize == nextDataSize, "size must be equal!");
-	easyAssert(nextDiffSize == nextDataSize, "size must be equal!");
 
 	//update prevDiff data
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDataSize));
+	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
 	prevDiffBucket->fillData(0.0f);
-	const DataSize prevDiffSize = prevDiffBucket->getSize();
 	float* prevDiff = prevDiffBucket->getData().get();
-	for (int pn = 0; pn < prevDiffSize.number; pn++)
+	//calculate current inner diff
+	for (size_t nn = 0; nn < nextDataSize.number; nn++)
 	{
-		for (int pc = 0; pc < prevDiffSize.channels; pc++)
+		for (size_t pc = 0; pc < prevDiffSize.channels; pc++)
 		{
-			for (int ph = 0; ph < prevDiffSize.height; ph++)
+			for (size_t ph = 0; ph < prevDiffSize.height; ph++)
 			{
-				for (int pw = 0; pw < prevDiffSize.width; pw++)
+				for (size_t pw = 0; pw < prevDiffSize.width; pw++)
 				{
-					const int idx = prevDiffSize.getIndex(pn, pc, ph, pc);
-					prevDiff[idx] += reluDfOperator(nextData[idx]);
+					const size_t dataIdx = nextDataSize.getIndex(nn, pc, ph, pw);
+					const size_t paramIdx = prevDiffSize.getIndex(pc, ph, pw);
+					prevDiff[paramIdx] += reluDfOperator(nextData[dataIdx]);
 				}
 			}
 		}
 	}
-	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
+	//multiply next diff
+	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize(); i++)
 	{
 		prevDiff[i] *= nextDiff[i];
 	}

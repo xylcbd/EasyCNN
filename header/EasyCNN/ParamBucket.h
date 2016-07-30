@@ -10,22 +10,24 @@ namespace EasyCNN
 	{
 	public:
 		ParamSize() = default;
-		ParamSize(const int _number, const int _channels, const int _width, const int _height)
+		ParamSize(const size_t _number, const size_t _channels, const size_t _width, const size_t _height)
 			:number(_number), channels(_channels), width(_width), height(_height){}
-		inline int totalSize() const { return number*channels*width*height; }
+		inline size_t _4DSize() const { return number*channels*width*height; }
+		inline size_t _3DSize() const { return channels*width*height; }
+		inline size_t _2DSize() const { return width*height; }
 		inline bool operator==(const ParamSize& other) const{
 			return other.number == number && other.channels == channels && other.width == width && other.height == height;
 		}
-		inline int getIdx(const int in, const int ic, const int ih, const int iw){
+		inline size_t getIndex(const size_t in, const size_t ic, const size_t ih, const size_t iw) const{
 			return in*channels*height*width + ic*height*width + ih*width + iw;
 		}
-		inline int getIndex(const int ic, const int ih, const int iw) const{
+		inline size_t getIndex(const size_t ic, const size_t ih, const size_t iw) const{
 			return ic*height*width + ih*width + iw;
 		}
-		int number = 0;
-		int channels = 0;
-		int width = 0;
-		int height = 0;
+		size_t number = 0;
+		size_t channels = 0;
+		size_t width = 0;
+		size_t height = 0;
 	};
 	class ParamBucket
 	{
@@ -34,6 +36,7 @@ namespace EasyCNN
 		virtual ~ParamBucket();
 		ParamSize getSize() const;
 		std::shared_ptr<float> getData() const;
+		void fillData(const float item);
 		void cloneTo(ParamBucket& target);
 	private:
 		ParamSize size;

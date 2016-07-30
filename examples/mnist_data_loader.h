@@ -4,7 +4,7 @@
 
 struct image_t
 {
-	int width, height, channels;
+	size_t width, height, channels;
 	std::vector<uint8_t> data;
 };
 bool load_mnist_images(const std::string& file_path, std::vector<image_t>& images);

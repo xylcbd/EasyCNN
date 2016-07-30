@@ -9,7 +9,7 @@ EasyCNN::PoolingLayer::~PoolingLayer()
 {
 
 }
-void EasyCNN::PoolingLayer::setParamaters(const PoolingType _poolingType, const ParamSize _poolingKernelSize,const int _widthStep, const int _heightStep)
+void EasyCNN::PoolingLayer::setParamaters(const PoolingType _poolingType, const ParamSize _poolingKernelSize, const size_t _widthStep, const size_t _heightStep)
 {
 	easyAssert(_poolingKernelSize.number ==1 && _poolingKernelSize.channels > 0 && _poolingKernelSize.width > 1 && _poolingKernelSize.height > 1 && _widthStep>0 && _heightStep>0,
 		"parameters invalidate.");
@@ -38,47 +38,61 @@ void EasyCNN::PoolingLayer::solveInnerParams()
 	outputSize.width = (inputSize.width-poolingKernelSize.width)/widthStep+1;
 	outputSize.height = (inputSize.height-poolingKernelSize.height)/heightStep+1;
 	setOutpuBuckerSize(outputSize);
+
+	if (poolingType == PoolingType::MaxPooling)
+	{
+		maxIdxBucket.reset(new ParamBucket(ParamSize(outputSize.number, outputSize.channels, outputSize.height, outputSize.width)));
+	}
 }
 void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
 	const DataSize inputSize = getInputBucketSize();
 	const DataSize outputSize = getOutputBucketSize();
+	const ParamSize maxIdxSize = maxIdxBucket->getSize();
 	easyAssert(inputSize.number == outputSize.number && inputSize.channels == outputSize.channels &&
 		inputSize.height >= outputSize.height && inputSize.width >= outputSize.height, "input size & output size is invalidate.");
 	easyAssert(nextDataBucket->getSize() == outputSize, "outputSize must be equals with nextDataBucket's size.");
 
-	for (int on = 0; on < outputSize.number;on++)
+	for (size_t on = 0; on < outputSize.number; on++)
 	{
-		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize.channels*inputSize.height*inputSize.width;
-		float* nextRawData = nextDataBucket->getData().get() + on*outputSize.channels*outputSize.height*outputSize.width;
-		for (int oc = 0; oc < outputSize.channels; oc++)
+		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize._3DSize();
+		float* nextRawData = nextDataBucket->getData().get() + on*outputSize._3DSize();
+		float* maxIdxRawData = maxIdxBucket->getData().get() + on*maxIdxSize._3DSize();
+		for (size_t oc = 0; oc < outputSize.channels; oc++)
 		{
-			for (int oh = 0; oh < outputSize.height; oh++)
+			for (size_t oh = 0; oh < outputSize.height; oh++)
 			{
-				for (int ow = 0; ow < outputSize.width; ow++)
+				for (size_t ow = 0; ow < outputSize.width; ow++)
 				{
-					const int inStartX = ow*widthStep;
-					const int inStartY = oh*heightStep;
-					const int outIdx = outputSize.getIndex(oc, oh, ow);
+					const size_t inStartX = ow*widthStep;
+					const size_t inStartY = oh*heightStep;
+					const size_t outIdx = outputSize.getIndex(oc, oh, ow);
 					float result = 0;
+					size_t maxIdx = 0;
 					if (poolingType == PoolingType::MaxPooling)
 					{
-						for (int ph = 0; ph < poolingKernelSize.height; ph++)
+						for (size_t ph = 0; ph < poolingKernelSize.height; ph++)
 						{
-							for (int pw = 0; pw < poolingKernelSize.width; pw++)
+							for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 							{
-								const int inIdx = inputSize.getIndex(oc, inStartY + ph, inStartX + pw);
-								result = std::max(result, prevRawData[inIdx]);
+								const size_t inIdx = inputSize.getIndex(oc, inStartY + ph, inStartX + pw);
+								if (result > prevRawData[inIdx])
+								{
+									result = prevRawData[inIdx];
+									maxIdx = ph*poolingKernelSize.width + pw;
+								}
 							}
 						}
+						//FIXME : using int type!!
+						maxIdxRawData[outIdx] = maxIdx;
 					}
 					else if (poolingType == PoolingType::MeanPooling)
 					{
-						for (int ph = 0; ph < poolingKernelSize.height; ph++)
+						for (size_t ph = 0; ph < poolingKernelSize.height; ph++)
 						{
-							for (int pw = 0; pw < poolingKernelSize.width; pw++)
+							for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 							{
-								const int inIdx = inputSize.getIndex(oc, inStartY + ph, inStartX + pw);
+								const size_t inIdx = inputSize.getIndex(oc, inStartY + ph, inStartX + pw);
 								result += prevRawData[inIdx];
 							}
 						}
@@ -90,7 +104,68 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 		}//oc
 	}//on
 }
-void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
+void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
+	const DataSize prevDataSize = prevDataBucket->getSize();
+	const DataSize nextDataSize = nextDataBucket->getSize();
+	const ParamSize nextDiffSize = nextDiffBucket->getSize();
+	const float* prevData = prevDataBucket->getData().get();
+	const float* nextData = nextDataBucket->getData().get();
+	const float* nextDiff = nextDiffBucket->getData().get();
+	easyAssert(maxIdxBucket->getSize()._3DSize() == nextDataSize._3DSize(),"idx size must equals with next data.");
 
+	//update prevDiff data
+	const float* maxIdxRawData = maxIdxBucket->getData().get();
+	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
+	prevDiffBucket->fillData(0.0f);
+	float* prevDiff = prevDiffBucket->getData().get();
+	//calculate current inner diff 
+	//none
+	//pass next layer's diff to previous layer
+	for (size_t pn = 0; pn < prevDataSize.number; pn++)
+	{
+		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
+		{
+			for (size_t nh = 0; nh < nextDataSize.height; nh++)
+			{
+				for (size_t nw = 0; nw < nextDataSize.width; nw++)
+				{
+					const size_t inStartX = nw*widthStep;
+					const size_t inStartY = nh*heightStep;
+					const size_t nextDataIdx = nextDataSize.getIndex(nc, nh, nw);
+					if (poolingType == PoolingType::MaxPooling)
+					{
+						for (size_t ph = 0; ph < poolingKernelSize.height; ph++)
+						{
+							for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
+							{
+								const size_t prevDiffIdx = prevDataSize.getIndex(nc, inStartY + ph, inStartX + pw);
+								if (ph*poolingKernelSize.width + pw == maxIdxRawData[nextDataIdx])
+								{
+									prevDiff[prevDiffIdx] += nextDiff[nextDataIdx];
+								}
+							}
+						}
+					}else if (poolingType == PoolingType::MeanPooling)
+					{
+						const float meanDiff = nextDiff[nextDataIdx] / (float)(poolingKernelSize._2DSize());
+						for (size_t ph = 0; ph < poolingKernelSize.height; ph++)
+						{
+							for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
+							{
+								const size_t prevDiffIdx = prevDataSize.getIndex(nc, inStartY + ph, inStartX + pw);
+								prevDiff[prevDiffIdx] += meanDiff;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//update this layer's param
+	//nop
+
+	nextDiffBucket = prevDiffBucket;
 }
