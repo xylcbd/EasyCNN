@@ -16,34 +16,31 @@ std::string EasyCNN::SoftmaxLayer::getLayerType() const
 }
 void EasyCNN::SoftmaxLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const DataSize inputSize = getInputBucketSize();
-	const DataSize outputSize = getOutputBucketSize();
-	easyAssert(inputSize == outputSize, "outputSize must be equals with inputSize.");
-	easyAssert(outputSize.number >0 && outputSize.channels > 0 && outputSize.width == 1 && outputSize.height == 1,
-		"outputSize is invalidate.");
+	const DataSize prevDataSize = prevDataBucket->getSize();
+	const DataSize nextDataSize = nextDataBucket->getSize();
 
-	for (size_t on = 0; on < outputSize.number; on++)
+	for (size_t nn = 0; nn < nextDataSize.number; nn++)
 	{
-		const float* prevRawData = prevDataBucket->getData().get() + on*inputSize._3DSize();
-		float* nextRawData = nextDataBucket->getData().get() + on*outputSize._3DSize();
+		const float* prevData = prevDataBucket->getData().get() + nn*prevDataSize._3DSize();
+		float* nextData = nextDataBucket->getData().get() + nn*nextDataSize._3DSize();
 
 		//step1 : find max value
-		float maxVal = prevRawData[0];
-		for (size_t ic = 0; ic < inputSize._3DSize(); ic++)
+		float maxVal = prevData[0];
+		for (size_t prevDataIdx = 0; prevDataIdx < prevDataSize._3DSize(); prevDataIdx++)
 		{
-			maxVal = std::max(maxVal, prevRawData[ic]);
+			maxVal = std::max(maxVal, prevData[prevDataIdx]);
 		}
 		//step2 : sum
 		float sum = 0;
-		for (size_t ic = 0; ic < inputSize._3DSize(); ic++)
+		for (size_t prevDataIdx = 0; prevDataIdx < prevDataSize._3DSize(); prevDataIdx++)
 		{
-			nextRawData[ic] = std::exp(prevRawData[ic] - maxVal);
-			sum += nextRawData[ic];
+			nextData[prevDataIdx] = std::exp(prevData[prevDataIdx] - maxVal);
+			sum += nextData[prevDataIdx];
 		}
 		//step3 : div
-		for (size_t ic = 0; ic < inputSize._3DSize(); ic++)
+		for (size_t prevDataIdx = 0; prevDataIdx < prevDataSize._3DSize(); prevDataIdx++)
 		{
-			nextRawData[ic] = nextRawData[ic] / sum;
+			nextData[prevDataIdx] = nextData[prevDataIdx] / sum;
 		}
 	}
 }
@@ -63,28 +60,24 @@ void EasyCNN::SoftmaxLayer::backward(std::shared_ptr<DataBucket> prevDataBucket,
 	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
 	prevDiffBucket->fillData(0.0f);	
 	float* prevDiff = prevDiffBucket->getData().get();
-	for (size_t pidx = 0; pidx < prevDiffSize._4DSize(); pidx++)
+	for (size_t pn = 0; pn < prevDataSize.number; pn++)
 	{
-		for (size_t nn = 0; nn < nextDataSize.number; nn++)
+		for (size_t prevDiffIdx = 0; prevDiffIdx < prevDiffSize._3DSize(); prevDiffIdx++)
 		{
-			for (size_t nidx = 0; nidx < nextDataSize._3DSize(); nidx++)
+			for (size_t nextDiffIdx = 0; nextDiffIdx < nextDiffSize._3DSize(); nextDiffIdx++)
 			{
-				const size_t dataIdx = nn*nextDataSize._3DSize() + nidx;
-				if (nidx == pidx)
+				const size_t nextDataIdx = pn*nextDataSize._3DSize() + nextDiffIdx;
+				if (nextDiffIdx == prevDiffIdx)
 				{
-					prevDiff[pidx] += nextData[dataIdx] * (1.0f - nextData[dataIdx]);
+					prevDiff[prevDiffIdx] += nextData[prevDiffIdx] * (1.0f - nextData[prevDiffIdx]) * nextDiff[nextDiffIdx] / nextDataSize.number;
 				}
 				else
 				{
-					prevDiff[pidx] -= nextData[dataIdx] * nextData[dataIdx];
+					prevDiff[prevDiffIdx] -= nextData[prevDiffIdx] * nextData[nextDiffIdx] * nextDiff[nextDiffIdx] / nextDataSize.number;
 				}
 			}
 		}
 	}
-	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize();i++)
-	{
-		prevDiff[i] *= nextDiff[i];
-	}	
 
 	//update this layer's param
 	//softmax layer : nop

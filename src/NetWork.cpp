@@ -48,7 +48,7 @@ void EasyCNN::NetWork::addayer(std::shared_ptr<Layer> layer)
 	dataBuckets.push_back(dataBucket);
 	EASYCNN_LOG_VERBOSE("NetWork addayer end. add data bucket done.");
 }
-void EasyCNN::NetWork::backward(std::shared_ptr<EasyCNN::DataBucket> labelDataBucket)
+float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,const float learningRate)
 {
 	EASYCNN_LOG_VERBOSE("NetWork backward begin.");
 	easyAssert(layers.size() > 1,"layer count is less than 2.");
@@ -61,11 +61,10 @@ void EasyCNN::NetWork::backward(std::shared_ptr<EasyCNN::DataBucket> labelDataBu
 	const float* labelData = labelDataBucket->getData().get();
 	const float* outputData = lastOutputData->getData().get();
 	float loss = 0.0f;
-	for (size_t i = 0; i < lastOutputData->getSize()._4DSize();i++)
+	for (size_t i = 0; i < lastOutputSize._4DSize(); i++)
 	{
-		loss -= labelData[i] * std::log(outputData[i]);
+		loss -= labelData[i] * std::log(outputData[i]) / lastOutputSize.number;
 	}
-	EASYCNN_LOG_VERBOSE("loss = %f", loss);
 
 	//////////////////////////////////////////////////////////////////////////
 	//label layer backward
@@ -73,35 +72,46 @@ void EasyCNN::NetWork::backward(std::shared_ptr<EasyCNN::DataBucket> labelDataBu
 	std::shared_ptr<ParamBucket>& nextDiffBucket(std::make_shared<ParamBucket>(nextDiffSize));
 	nextDiffBucket->fillData(0.0f);
 	float* nextDiff = nextDiffBucket->getData().get();
-	for (size_t on = 0; on < lastOutputSize.number;on++)
+	for (size_t on = 0; on < lastOutputSize.number; on++)
 	{
-		for (size_t nextDiffIdx = 0; nextDiffIdx < nextDiffBucket->getSize()._3DSize(); nextDiffIdx++)
+		for (size_t nextDiffIdx = 0; nextDiffIdx < nextDiffSize._3DSize(); nextDiffIdx++)
 		{
 			const size_t dataIdx = on*lastOutputSize._3DSize() + nextDiffIdx;
-			nextDiff[nextDiffIdx] = -labelData[dataIdx] / (outputData[dataIdx]);
+			nextDiff[nextDiffIdx] -= ((labelData[dataIdx] / (outputData[dataIdx]))) / lastOutputSize.number;
 		}
-	}	
-	
+	}
+
 	//other layer backward
-	for (int i = layers.size()-1; i >= 0; i--)
+	for (int i = (int)(layers.size())-1; i >= 0; i--)
 	{
 		EASYCNN_LOG_VERBOSE("NetWork layer[%d](%s) backward begin.",i,layers[i]->getLayerType().c_str());
 		layers[i]->setLearningRate(learningRate);
 		layers[i]->backward(dataBuckets[i], dataBuckets[i + 1], nextDiffBucket);
 		EASYCNN_LOG_VERBOSE("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
 	}
-	learningRate = std::max(0.0001f, learningRate*decayRate);
 	EASYCNN_LOG_VERBOSE("NetWork backward end.");
+
+	return loss;
 }
-void EasyCNN::NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket)
+std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket)
 {
 	EASYCNN_LOG_VERBOSE("NetWork forward begin.");
 	easyAssert(layers.size() > 1, "layer count is less than 2.");
 	easyAssert(layers[0]->getLayerType() == InputLayer::layerType, "first layer is not input layer.");
 	easyAssert(dataBuckets.size() > 0, "data buckets is not ready.");
-	easyAssert(inputDataBucket->getSize()._4DSize() == dataBuckets[0]->getSize()._4DSize(), "size is invalidate.");
 	//copy data from inputDataBucket
-	//FIXME : handle inputDataBucket->getSize().totalSize() != dataBuckets[0]->getSize().totalSize()
+	//reshape data bucket
+	const auto oldNumber = dataBuckets[0]->getSize().number;
+	const auto newNumber = inputDataBucket->getSize().number;
+	if (newNumber != oldNumber)
+	{
+		for (size_t i = 0; i < dataBuckets.size(); i++)
+		{
+			auto newSize = dataBuckets[i]->getSize();
+			newSize.number = newNumber;
+			dataBuckets[i].reset(new DataBucket(newSize));
+		}
+	}
 	inputDataBucket->cloneTo(*dataBuckets[0]);
 
 	for (size_t i = 0; i < layers.size(); i++)
@@ -110,5 +120,7 @@ void EasyCNN::NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket
 		layers[i]->forward(dataBuckets[i], dataBuckets[i+1]);
 		EASYCNN_LOG_VERBOSE("NetWork layer[%d](%s) forward end.", i, layers[i]->getLayerType().c_str());
 	}
+
 	EASYCNN_LOG_VERBOSE("NetWork forward end.");
+	return dataBuckets[dataBuckets.size() - 1];
 }

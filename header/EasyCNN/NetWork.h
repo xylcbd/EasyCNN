@@ -14,12 +14,10 @@ namespace EasyCNN
 		void addayer(std::shared_ptr<Layer> layer);
 	public:
 		void setInputSize(const DataSize size);
-		void forward(const std::shared_ptr<DataBucket> inputDataBucket);
-		void backward(std::shared_ptr<EasyCNN::DataBucket> labelDataBucket);
+		std::shared_ptr<EasyCNN::DataBucket> forward(const std::shared_ptr<DataBucket> inputDataBucket);
+		float backward(const std::shared_ptr<DataBucket> labelDataBucket, float learningRate);
 	private:
 		std::vector<std::shared_ptr<Layer>> layers;
 		std::vector<std::shared_ptr<DataBucket>> dataBuckets;
-		float learningRate = 0.1f;
-		const float decayRate = 0.1f;
 	};
 }

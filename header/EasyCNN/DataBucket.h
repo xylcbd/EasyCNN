@@ -18,6 +18,9 @@ namespace EasyCNN
 		inline bool operator==(const DataSize& other) const{ 
 			return other.number == number && other.channels == channels && other.width == width && other.height == height;
 		}
+		inline bool operator!=(const DataSize& other) const{
+			return !(*this==(other));
+		}
 		inline size_t getIndex(const size_t in, const size_t ic, const size_t ih, const size_t iw) const{
 			return in*channels*height*width + ic*height*width + ih*width + iw;
 		}

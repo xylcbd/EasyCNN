@@ -1,3 +1,4 @@
+#include <cassert>
 #include "EasyCNN/EasyAssert.h"
 #include "EasyCNN/EasyLogger.h"
 
@@ -26,6 +27,7 @@ void EasyCNN::easyAssertCore(const std::string& file, const std::string& functio
 		}
 		else
 		{
+			assert(false);
 			exit(0);
 		}
 	}

@@ -1,6 +1,10 @@
 #include "EasyCNN/ConvolutionLayer.h"
 #include "EasyCNN/CommonTools.h"
 
+#if WITH_OPENCV_DEBUG
+#include "opencv2/opencv.hpp"
+#endif
+
 EasyCNN::ConvolutionLayer::ConvolutionLayer()
 {
 
@@ -49,27 +53,23 @@ void EasyCNN::ConvolutionLayer::solveInnerParams()
 }
 void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
-	const DataSize inputSize = getInputBucketSize();
-	const DataSize outputSize = getOutputBucketSize();
-	easyAssert(nextDataBucket->getSize() == outputSize, "outputSize must be equals with nextDataBucket's size.");
-	easyAssert(inputSize.number == outputSize.number && kernelSize.number == outputSize.channels && kernelSize.channels == inputSize.channels, 
-		"kernel number/channel must be equals with nextDataBucket");
+	const DataSize prevDataSize = prevDataBucket->getSize();
+	const DataSize nextDataSize = nextDataBucket->getSize();
 
 	const float* prevRawData = prevDataBucket->getData().get();
 	const float* kernelRawData = kernelData->getData().get();
 	const float* biasRawData = biasData->getData().get();
 	float* nextRawData = nextDataBucket->getData().get();
-	for (size_t on = 0; on < outputSize.number; on++)
+	for (size_t nn = 0; nn < nextDataSize.number; nn++)
 	{			
-		for (size_t oc = 0; oc < outputSize.channels; oc++)
+		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
 		{		
-			for (size_t oh = 0; oh < outputSize.height; oh++)
+			for (size_t nh = 0; nh < nextDataSize.height; nh++)
 			{
-				for (size_t ow = 0; ow < outputSize.width; ow++)
+				for (size_t nw = 0; nw < nextDataSize.width; nw++)
 				{
-					const size_t inStartX = ow*widthStep;
-					const size_t inStartY = oh*heightStep;
-					const size_t outIdx = outputSize.getIndex(on, oc, oh, ow);
+					const size_t inStartX = nw*widthStep;
+					const size_t inStartY = nh*heightStep;					
 					float sum = 0;
 					for (size_t kc = 0; kc < kernelSize.channels; kc++)
 					{
@@ -77,21 +77,68 @@ void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDa
 						{
 							for (size_t kw = 0; kw < kernelSize.width; kw++)
 							{
-								const size_t inIdx = inputSize.getIndex(on,kc, inStartY + kh, inStartX + kw);
-								const size_t kernelIdx = kernelSize.getIndex(oc,kc, kh, kw);
-								sum += prevRawData[inIdx] * kernelRawData[kernelIdx];
+								const size_t prevDataIdx = prevDataSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
+								const size_t kernelIdx = kernelSize.getIndex(nc,kc, kh, kw);
+								sum += prevRawData[prevDataIdx] * kernelRawData[kernelIdx];
 							}
 						}
 					}
 					if (enabledBias)
 					{
-						sum += biasRawData[oc];
+						const size_t biasIdx = nc;
+						sum += biasRawData[biasIdx];
 					}
-					nextRawData[outIdx] = sum;
+					const size_t nextDataIdx = nextDataSize.getIndex(nn, nc, nh, nw);
+					nextRawData[nextDataIdx] = sum;
 				}
 			}
 		}
 	}
+
+#if WITH_OPENCV_DEBUG
+	//input image
+	for (int pn = 0; pn < prevDataSize.number; pn++)
+	{
+		for (int pc = 0; pc < prevDataSize.channels; pc++)
+		{
+			const float* imageData = prevRawData + pn*prevDataSize._3DSize() + pc*prevDataSize._2DSize();
+			const size_t imageWidth = prevDataSize.width;
+			const size_t imageStride = imageWidth;
+			const size_t imageHeight = prevDataSize.height;
+			const size_t imageChannel = 1;
+			cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
+			image.empty();
+		}		
+	}
+	//kernel image
+	for (int kn = 0; kn < kernelSize.number; kn++)
+	{
+		for (int kc = 0; kc < kernelSize.channels; kc++)
+		{
+			const float* imageData = kernelRawData + kn*kernelSize._3DSize() + kc*kernelSize._2DSize();
+			const size_t imageWidth = kernelSize.width;
+			const size_t imageStride = imageWidth;
+			const size_t imageHeight = kernelSize.height;
+			const size_t imageChannel = 1;
+			cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
+			image.empty();
+		}
+	}
+	//output image
+	for (int nn = 0; nn < nextDataSize.number; nn++)
+	{
+		for (int nc = 0; nc < nextDataSize.channels; nc++)
+		{
+			const float* imageData = nextRawData + nn*nextDataSize._3DSize() + nc*nextDataSize._2DSize();
+			const size_t imageWidth = nextDataSize.width;
+			const size_t imageStride = imageWidth;
+			const size_t imageHeight = nextDataSize.height;
+			const size_t imageChannel = 1;
+			cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
+			image.empty();
+		}
+	}
+#endif //WITH_OPENCV_DEBUG
 }
 void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
@@ -122,8 +169,8 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 				{
 					const size_t inStartX = nw*widthStep;
 					const size_t inStartY = nh*heightStep;
-					const size_t nextDataIdx = nextDataSize.getIndex(pn,nc, nh, nw);
 					const size_t nextDiffIdx = nextDataSize.getIndex(nc, nh, nw);
+					const size_t kn = nc;
 					for (size_t kc = 0; kc < kernelSize.channels; kc++)
 					{
 						for (size_t kh = 0; kh < kernelSize.height; kh++)
@@ -131,7 +178,8 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 							for (size_t kw = 0; kw < kernelSize.width;kw++)
 							{
 								const size_t prevDiffIdx = prevDiffSize.getIndex(0, kc, inStartY + kh, inStartX + kw);
-								prevDiff[prevDiffIdx] += kernel[kernelSize.getIndex(nc,kc, kh, kw)] * nextDiff[nextDiffIdx];
+								const size_t kernelIdx = kernelSize.getIndex(kn, kc, kh, kw);
+								prevDiff[prevDiffIdx] += kernel[kernelIdx] * nextDiff[nextDiffIdx] / nextDataSize.number;
 							}
 						}
 					}
@@ -157,17 +205,17 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 				{
 					const size_t inStartX = nw*widthStep;
 					const size_t inStartY = nh*heightStep;
-					const size_t nextDataIdx = nextDataSize.getIndex(pn, nc, nh, nw);
 					const size_t nextDiffIdx = nextDataSize.getIndex(nc, nh, nw);
+					const size_t kn = nc;
 					for (size_t kc = 0; kc < kernelSize.channels; kc++)
 					{
 						for (size_t kh = 0; kh < kernelSize.height; kh++)
 						{
 							for (size_t kw = 0; kw < kernelSize.width; kw++)
 							{
-								const size_t kernelDiffIdx = kernelDiffSize.getIndex(nc, kc, kh, kw);
+								const size_t kernelDiffIdx = kernelDiffSize.getIndex(kn, kc, kh, kw);
 								const size_t prevDataIdx = prevDataSize.getIndex(pn, kc, inStartY + kh, inStartX + kw);
-								kernelDiff[kernelDiffIdx] += prevData[prevDataIdx] * nextDiff[nextDiffIdx];
+								kernelDiff[kernelDiffIdx] += prevData[prevDataIdx] * nextDiff[nextDiffIdx] / nextDataSize.number;
 							}
 						}
 					}
@@ -197,7 +245,7 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 				for (size_t nw = 0; nw < nextDiffSize.width; nw++)
 				{
 					const size_t nextDiffIdx = nextDiffSize.getIndex(0,nc,nh,nw);
-					biasDiff[biasDiffIdx] += 1.0f*nextDiff[nextDiffIdx];
+					biasDiff[biasDiffIdx] += 1.0f*nextDiff[nextDiffIdx] / nextDataSize.number;
 				}
 			}
 		}
@@ -205,7 +253,7 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 	//apply change
 	for (size_t biasIdx = 0; biasIdx < biasSize._4DSize(); biasIdx++)
 	{
-		bias[biasIdx] -= getLearningRate()*bias[biasIdx];
+		bias[biasIdx] -= getLearningRate()*biasDiff[biasIdx];
 	}
 
 	//////////////////////////////////////////////////////////////////////////

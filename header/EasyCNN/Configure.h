@@ -1,6 +1,3 @@
 #pragma once
 
-namespace EasyCNN
-{
-	//nop
-}
+#define WITH_OPENCV_DEBUG 0
