@@ -112,7 +112,29 @@ namespace EasyCNN
 	}
 }
 
+#define EASYCNN_LOG_LEVEL_BASE 1
+#define EASYCNN_LOG_LEVEL_VERBOSE (EASYCNN_LOG_LEVEL_BASE+2)
+#define EASYCNN_LOG_LEVEL_CRITICAL (EASYCNN_LOG_LEVEL_BASE+3)
+#define EASYCNN_LOG_LEVEL_FATAL (EASYCNN_LOG_LEVEL_BASE+4)
+
+#define EASYCNN_LOG_LEVEL EASYCNN_LOG_LEVEL_CRITICAL
+
 #define EASYCNN_LOG_FORMATSTRING(fmt,...) EasyCNN::Anonymous::Logger::formatString(fmt,__VA_ARGS__)
+
+#if EASYCNN_LOG_LEVEL <= EASYCNN_LOG_LEVEL_VERBOSE
 #define EASYCNN_LOG_VERBOSE(fmt,...) EasyCNN::Anonymous::Logger::logging(EasyCNN::Anonymous::Logger::LogLevel::Verbose,EASYCNN_LOG_FORMATSTRING(fmt, __VA_ARGS__));
+#else
+#define EASYCNN_LOG_VERBOSE(fmt,...)
+#endif
+
+#if EASYCNN_LOG_LEVEL <= EASYCNN_LOG_LEVEL_CRITICAL
 #define EASYCNN_LOG_CRITICAL(fmt,...) EasyCNN::Anonymous::Logger::logging(EasyCNN::Anonymous::Logger::LogLevel::Critical,EASYCNN_LOG_FORMATSTRING(fmt, __VA_ARGS__));
+#else
+#define EASYCNN_LOG_CRITICAL(fmt,...)
+#endif
+
+#if EASYCNN_LOG_LEVEL <= EASYCNN_LOG_LEVEL_FATAL
 #define EASYCNN_LOG_FATAL(fmt,...) EasyCNN::Anonymous::Logger::logging(EasyCNN::Anonymous::Logger::LogLevel::Fatal,EASYCNN_LOG_FORMATSTRING(fmt, __VA_ARGS__));
+#else
+#define EASYCNN_LOG_FATAL(fmt,...)
+#endif

@@ -26,7 +26,7 @@ namespace EasyCNN
 	private:
 		PoolingType poolingType = PoolingType::MaxPooling;
 		//FIXME : using int type
-		std::shared_ptr<ParamBucket> maxIdxBucket;
+		std::shared_ptr<ParamBucket> maxIdxesBucket;
 		ParamSize poolingKernelSize;
 		size_t widthStep = 0;
 		size_t heightStep = 0;
