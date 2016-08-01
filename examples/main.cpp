@@ -94,8 +94,9 @@ static uint8_t getMaxIdxInArray(const float* start, const float* stop)
 	}
 	return (uint8_t)result;
 }
-static float test(EasyCNN::NetWork& network,const size_t batch,const std::vector<image_t> test_images, std::vector<label_t> test_labels)
+static float test(EasyCNN::NetWork& network,const std::vector<image_t> test_images, std::vector<label_t> test_labels)
 {
+	const size_t batch = 128;
 	assert(test_images.size() == test_labels.size() && test_images.size()>0);
 	int correctCount = 0;
 	for (size_t i = 0; i < test_labels.size(); i += batch)
@@ -119,59 +120,39 @@ static float test(EasyCNN::NetWork& network,const size_t batch,const std::vector
 	const float result = (float)correctCount / (float)test_labels.size();
 	return result;
 }
-int main(int argc, char* argv[])
+static float getAccuracy(const std::shared_ptr<EasyCNN::DataBucket> probDataBucket, const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket)
 {
-	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";
-	const std::string mnist_train_labels_file = "../../res/mnist_data/train-labels.idx1-ubyte";
-	bool success = false;
-
-	//load train images
-	EASYCNN_LOG_CRITICAL("loading traning data...");
-	std::vector<image_t> images;
-	success = load_mnist_images(mnist_train_images_file, images);
-	assert(success && images.size() > 0);
-	//load train labels
-	std::vector<label_t> labels;
-	success = load_mnist_labels(mnist_train_labels_file, labels);
-	assert(success && labels.size() > 0);
-	assert(images.size() == labels.size());
-	//TODO : shuffle input data
-
-	//train data & validate data
-	//train
-	std::vector<image_t> train_images(static_cast<size_t>(images.size()*0.95f));
-	std::vector<label_t> train_labels(static_cast<size_t>(labels.size()*0.95f));
-	std::copy(images.begin(), images.begin() + train_images.size(), train_images.begin());
-	std::copy(labels.begin(), labels.begin() + train_labels.size(), train_labels.begin());
-	//validate
-	std::vector<image_t> validate_images(images.size() - train_images.size());
-	std::vector<label_t> validate_labels(labels.size() - train_labels.size());
-	std::copy(images.begin() + train_images.size(), images.end(), validate_images.begin());
-	std::copy(labels.begin() + train_labels.size(), labels.end(), validate_labels.begin());
-	EASYCNN_LOG_CRITICAL("load traning data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
-
-	float learningRate = 0.01f;
-	const float decayRate = 0.1f;
-	const float minLearningRate = 0.000001f;
-	const size_t testAfterBatches = 100;
-	const size_t max_epoch = 100;
-	const size_t batch = 10;
-	const size_t channels = images[0].channels;
-	const size_t width = images[0].width;
-	const size_t height = images[0].height;
-	EASYCNN_LOG_CRITICAL("max_epoch:%d,testAfterBatches:%d", max_epoch, testAfterBatches);
-	EASYCNN_LOG_CRITICAL("learningRate:%f ,decayRate:%f , minLearningRate:%f",learningRate, decayRate, minLearningRate);
-	EASYCNN_LOG_CRITICAL("channels:%d , width:%d , height:%d", channels,width,height);
-
-	EASYCNN_LOG_CRITICAL("construct network begin...");
+	const auto probSize = probDataBucket->getSize();
+	const auto labelSize = labelDataBucket->getSize();
+	const auto itemSize = labelSize._3DSize();
+	const float* probData = probDataBucket->getData().get();
+	const float* labelData = labelDataBucket->getData().get();
+	assert(probSize == labelSize);
+	int correctCount = 0;
+	int totalCount = 0;
+	for (size_t n = 0; n < probSize.number;n++)
+	{
+		const uint8_t stdProb = getMaxIdxInArray(labelData + n*itemSize, labelData + (n + 1) * itemSize);
+		const uint8_t testProb = getMaxIdxInArray(probData + n*itemSize, probData + (n + 1) * itemSize);
+		if (stdProb == testProb)
+		{
+			correctCount++;
+		}
+		totalCount++;
+	}
+	const float result = (float)correctCount / (float)totalCount;
+	return result;
+}
+static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,const size_t width,const size_t height)
+{
 	EasyCNN::NetWork network;
-	network.setInputSize(EasyCNN::DataSize(batch,channels, width, height));
+	network.setInputSize(EasyCNN::DataSize(batch, channels, width, height));
 	//input data layer 0
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
 	//convolution layer 1
-	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());	
-	_1_convLayer->setParamaters(EasyCNN::ParamSize(6,1,5,5),1,1, true);
+	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
+	_1_convLayer->setParamaters(EasyCNN::ParamSize(6, 1, 5, 5), 1, 1, true);
 	network.addayer(_1_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 2
@@ -204,6 +185,86 @@ int main(int argc, char* argv[])
 	//soft max layer 6
 	std::shared_ptr<EasyCNN::SoftmaxLayer> _7_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
 	network.addayer(_7_softmaxLayer);
+
+	return network;
+}
+static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, const size_t width, const size_t height)
+{
+	EasyCNN::NetWork network;
+	network.setInputSize(EasyCNN::DataSize(batch, channels, width, height));
+	//input data layer
+	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
+	network.addayer(_0_inputLayer);
+	//full connect layer
+	std::shared_ptr<EasyCNN::FullconnectLayer> _1_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
+	_1_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 512, 1, 1));
+	_1_fullconnectLayer->setParamaters(true);
+	network.addayer(_1_fullconnectLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//full connect layer
+	std::shared_ptr<EasyCNN::FullconnectLayer> _2_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
+	_2_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 256, 1, 1));
+	_2_fullconnectLayer->setParamaters(true);
+	network.addayer(_2_fullconnectLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//full connect layer
+	std::shared_ptr<EasyCNN::FullconnectLayer> _3_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
+	_3_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 10, 1, 1));
+	_3_fullconnectLayer->setParamaters(true);
+	network.addayer(_3_fullconnectLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//soft max layer
+	std::shared_ptr<EasyCNN::SoftmaxLayer> _4_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
+	network.addayer(_4_softmaxLayer);
+
+	return network;
+}
+int main(int argc, char* argv[])
+{
+	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";
+	const std::string mnist_train_labels_file = "../../res/mnist_data/train-labels.idx1-ubyte";
+	bool success = false;
+
+	//load train images
+	EASYCNN_LOG_CRITICAL("loading traning data...");
+	std::vector<image_t> images;
+	success = load_mnist_images(mnist_train_images_file, images);
+	assert(success && images.size() > 0);
+	//load train labels
+	std::vector<label_t> labels;
+	success = load_mnist_labels(mnist_train_labels_file, labels);
+	assert(success && labels.size() > 0);
+	assert(images.size() == labels.size());
+	//TODO : shuffle input data
+
+	//train data & validate data
+	//train
+	std::vector<image_t> train_images(static_cast<size_t>(images.size()*0.8f));
+	std::vector<label_t> train_labels(static_cast<size_t>(labels.size()*0.8f));
+	std::copy(images.begin(), images.begin() + train_images.size(), train_images.begin());
+	std::copy(labels.begin(), labels.begin() + train_labels.size(), train_labels.begin());
+	//validate
+	std::vector<image_t> validate_images(images.size() - train_images.size());
+	std::vector<label_t> validate_labels(labels.size() - train_labels.size());
+	std::copy(images.begin() + train_images.size(), images.end(), validate_images.begin());
+	std::copy(labels.begin() + train_labels.size(), labels.end(), validate_labels.begin());
+	EASYCNN_LOG_CRITICAL("load traning data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
+
+	float learningRate = 0.01f;
+	const float decayRate = 0.1f;
+	const float minLearningRate = 0.000001f;
+	const size_t testAfterBatches = 1000;
+	const size_t max_epoch = 100;
+	const size_t batch = 1;
+	const size_t channels = images[0].channels;
+	const size_t width = images[0].width;
+	const size_t height = images[0].height;
+	EASYCNN_LOG_CRITICAL("max_epoch:%d,testAfterBatches:%d", max_epoch, testAfterBatches);
+	EASYCNN_LOG_CRITICAL("learningRate:%f ,decayRate:%f , minLearningRate:%f",learningRate, decayRate, minLearningRate);
+	EASYCNN_LOG_CRITICAL("channels:%d , width:%d , height:%d", channels,width,height);
+
+	EASYCNN_LOG_CRITICAL("construct network begin...");
+	EasyCNN::NetWork network(buildMLPNet(batch, channels, width, height));
 	EASYCNN_LOG_CRITICAL("construct network done...");
 
 	//train
@@ -219,16 +280,16 @@ int main(int argc, char* argv[])
 			{
 				break;
 			}			
-			network.forward(inputDataBucket);
+			const auto probDataBucket = network.forward(inputDataBucket);
 			const float loss = network.backward(labelDataBucket,learningRate);			
 			offset += batch;
 			if (offset % testAfterBatches == 0)
 			{
-				const float accuracy = test(network,batch,validate_images, validate_labels);
+				const float accuracy = test(network, validate_images, validate_labels);
 				EASYCNN_LOG_CRITICAL("batch : %d/%d , loss : %f , accuracy : %f", offset, train_images.size(), loss, accuracy*100.0f);
 			}
 		}
-		const float accuracy = test(network,batch,validate_images,validate_labels);
+		const float accuracy = test(network,validate_images,validate_labels);
 		EASYCNN_LOG_CRITICAL("epoch[%d] accuracy : %f", epochIdx++, accuracy*100.0f);
 		learningRate *= decayRate;
 		learningRate = std::max(learningRate, minLearningRate);
