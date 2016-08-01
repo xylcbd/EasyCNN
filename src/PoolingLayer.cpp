@@ -55,7 +55,17 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 
 	const float* prevData = prevDataBucket->getData().get();
 	float* nextData = nextDataBucket->getData().get();
-	float* maxIdxes = maxIdxesBucket->getData().get();
+	float* maxIdxes = nullptr;
+	if (poolingType == PoolingType::MaxPooling)
+	{
+		auto newSize = maxIdxesBucket->getSize();
+		if (newSize.number != prevDataSize.number)
+		{
+			newSize.number = prevDataSize.number;
+			maxIdxesBucket.reset(new ParamBucket(newSize));
+		}
+		maxIdxes = maxIdxesBucket->getData().get();
+	}
 	for (size_t nn = 0; nn < nextDataSize.number; nn++)
 	{
 		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
