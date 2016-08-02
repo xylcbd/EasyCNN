@@ -7,7 +7,7 @@ Easy convolution network.
 * Optimize method : SGD
 
 ## Demo
-* mnist demo :  ![examples/mnist_train_test.cpp](./examples/mnist_train_test.cpp "mnist_train_test.cpp")
+* mnist demo :  [examples/mnist_train_test.cpp](./examples/mnist_train_test.cpp "mnist_train_test.cpp")
 
 ## TODO
 * fix train error when batch > 1 issue.
