@@ -160,6 +160,7 @@
     <ClInclude Include="..\..\header\EasyCNN\EasyCNN.h" />
     <ClInclude Include="..\..\header\EasyCNN\InputLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\EasyLogger.h" />
+    <ClInclude Include="..\..\header\EasyCNN\LossFunction.h" />
     <ClInclude Include="..\..\header\EasyCNN\NetWork.h" />
     <ClInclude Include="..\..\header\EasyCNN\FullconnectLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\Layer.h" />
@@ -174,8 +175,10 @@
     <ClCompile Include="..\..\src\ActivationLayer.cpp" />
     <ClCompile Include="..\..\src\ConvolutionLayer.cpp" />
     <ClCompile Include="..\..\src\DataBucket.cpp" />
+    <ClCompile Include="..\..\src\EasyLogger.cpp" />
     <ClCompile Include="..\..\src\FullconnectLayer.cpp" />
     <ClCompile Include="..\..\src\InputLayer.cpp" />
+    <ClCompile Include="..\..\src\LossFunction.cpp" />
     <ClCompile Include="..\..\src\NetWork.cpp" />
     <ClCompile Include="..\..\src\ParamBucket.cpp" />
     <ClCompile Include="..\..\src\PoolingLayer.cpp" />

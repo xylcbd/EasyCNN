@@ -43,7 +43,7 @@ void EasyCNN::PoolingLayer::solveInnerParams()
 	outputSize.height = (inputSize.height-poolingKernelSize.height)/heightStep+1;
 	setOutpuBuckerSize(outputSize);
 
-	if (poolingType == PoolingType::MaxPooling)
+	if (getPhase() == Phase::Train && poolingType == PoolingType::MaxPooling)
 	{
 		maxIdxesBucket.reset(new ParamBucket(ParamSize(outputSize.number, outputSize.channels, outputSize.height, outputSize.width)));
 	}
@@ -56,7 +56,7 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 	const float* prevData = prevDataBucket->getData().get();
 	float* nextData = nextDataBucket->getData().get();
 	float* maxIdxes = nullptr;
-	if (poolingType == PoolingType::MaxPooling)
+	if (getPhase() == Phase::Train && poolingType == PoolingType::MaxPooling)
 	{
 		auto newSize = maxIdxesBucket->getSize();
 		if (newSize.number != prevDataSize.number)
@@ -93,7 +93,10 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 								}
 							}
 						}
-						maxIdxes[nextDataIdx] = (float)maxIdx;
+						if (maxIdxes)
+						{
+							maxIdxes[nextDataIdx] = (float)maxIdx;
+						}
 					}
 					else if (poolingType == PoolingType::MeanPooling)
 					{
@@ -146,6 +149,7 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 }
 void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
+	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
 	const ParamSize nextDiffSize = nextDiffBucket->getSize();
@@ -155,7 +159,7 @@ void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket,
 	easyAssert(maxIdxesBucket->getSize()._3DSize() == nextDataSize._3DSize(),"idx size must equals with next data.");
 
 	//update prevDiff data
-	const float* maxIdxes = maxIdxesBucket->getData().get();
+	const float* maxIdxes = maxIdxesBucket->getData().get();	
 	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
 	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
 	prevDiffBucket->fillData(0.0f);

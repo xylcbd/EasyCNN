@@ -46,6 +46,7 @@ void EasyCNN::SoftmaxLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 }
 void EasyCNN::SoftmaxLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
+	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
 	const ParamSize nextDiffSize = nextDiffBucket->getSize();

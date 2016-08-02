@@ -5,136 +5,24 @@
 #include <ctime>
 #include <sstream>
 #include <cstdarg>
+#include <functional>
 #include "EasyCNN/Configure.h"
-
-#ifdef _MSC_VER
-#pragma warning(disable:4996)
-#endif
 
 namespace EasyCNN
 {
-	namespace Anonymous
-	{
-		class Logger
-		{
-		public:
-			enum class LogLevel
-			{
-				Verbose,
-				Critical,
-				Fatal
-			};
-			static std::string formatString(const char* fmt, ...) {
-				std::string s;
-				va_list ap;
-				va_start(ap, fmt);
-				int size = vsnprintf(NULL, 0, fmt, ap);
-				va_end(ap);
-				if (size > 0) {
-					s.resize(size);
-					va_start(ap, fmt);
-					// Writes the trailing '\0' as well, but we don't care.
-					vsprintf(const_cast<char*>(s.data()), fmt, ap);
-					va_end(ap);
-				}
-				return s;
-			}
-			static void logging(const LogLevel level, const std::string& content)
-			{
-				Logger::instance().inner_logging(level,content);
-			}
-		private:
-			Logger(bool _consoleOnly = true)
-				:consoleOnly(_consoleOnly)
-			{
-				if (!consoleOnly){
-					ofs.open("easycnn_log.txt");
-				}
-			}
-			~Logger()
-			{
-				if (consoleOnly)
-				{
-					std::cout.flush();
-				}
-				else
-				{
-					ofs.flush();
-				}
-			}
-			static Logger& instance()
-			{
-				static Logger inst;
-				return inst;
-			}
-			std::string level2str(const LogLevel level)
-			{
-				switch (level)
-				{
-				case LogLevel::Verbose:
-					return "verbose";
-				case LogLevel::Critical:
-					return "critical";
-				case LogLevel::Fatal:
-					return "fatal";
-				default:
-					break;
-				}
-				return "unknown";
-			}
-			std::string buildInnerContent(const LogLevel level, const std::string& content)
-			{
-				std::stringstream ss;
-				const auto t = time(nullptr);
-				const auto local = localtime(&t);
-				ss << "[" << local->tm_hour << ":" << local->tm_min << ":" << local->tm_sec << "]";
-				ss << "[" << level2str(level) << "] " << content << std::endl;
-				return ss.str();
-			}
-			void inner_logging(const LogLevel level, const std::string& content)
-			{
-				const std::string innerContent = buildInnerContent(level, content);
-				if (consoleOnly)
-				{
-					std::cout << innerContent;
-					std::cout.flush();
-				}
-				else
-				{
-					ofs << innerContent;
-					ofs.flush();
-				}
-			}
-		private:
-			std::ofstream ofs;
-			bool consoleOnly = true;
-		};
-	}
+	enum LogLevel
+	{		
+		EASYCNN_LOG_LEVEL_VERBOSE,
+		EASYCNN_LOG_LEVEL_CRITICAL,
+		EASYCNN_LOG_LEVEL_FATAL,
+		EASYCNN_LOG_LEVEL_NONE
+	};
+	void setLogLevel(const LogLevel level);
+	LogLevel getLogLevel();
+	//default : console
+	void setLogRedirect(std::function<void(const LogLevel,const std::string)> logCb);
+	//
+	void logVerbose(const char* fmt, ...);
+	void logCritical(const char* fmt, ...);
+	void logFatal(const char* fmt, ...);
 }
-
-#define EASYCNN_LOG_LEVEL_BASE 1
-#define EASYCNN_LOG_LEVEL_VERBOSE (EASYCNN_LOG_LEVEL_BASE+2)
-#define EASYCNN_LOG_LEVEL_CRITICAL (EASYCNN_LOG_LEVEL_BASE+3)
-#define EASYCNN_LOG_LEVEL_FATAL (EASYCNN_LOG_LEVEL_BASE+4)
-
-#define EASYCNN_LOG_LEVEL EASYCNN_LOG_LEVEL_CRITICAL
-
-#define EASYCNN_LOG_FORMATSTRING(fmt,...) EasyCNN::Anonymous::Logger::formatString(fmt,__VA_ARGS__)
-
-#if EASYCNN_LOG_LEVEL <= EASYCNN_LOG_LEVEL_VERBOSE
-#define EASYCNN_LOG_VERBOSE(fmt,...) EasyCNN::Anonymous::Logger::logging(EasyCNN::Anonymous::Logger::LogLevel::Verbose,EASYCNN_LOG_FORMATSTRING(fmt, __VA_ARGS__));
-#else
-#define EASYCNN_LOG_VERBOSE(fmt,...)
-#endif
-
-#if EASYCNN_LOG_LEVEL <= EASYCNN_LOG_LEVEL_CRITICAL
-#define EASYCNN_LOG_CRITICAL(fmt,...) EasyCNN::Anonymous::Logger::logging(EasyCNN::Anonymous::Logger::LogLevel::Critical,EASYCNN_LOG_FORMATSTRING(fmt, __VA_ARGS__));
-#else
-#define EASYCNN_LOG_CRITICAL(fmt,...)
-#endif
-
-#if EASYCNN_LOG_LEVEL <= EASYCNN_LOG_LEVEL_FATAL
-#define EASYCNN_LOG_FATAL(fmt,...) EasyCNN::Anonymous::Logger::logging(EasyCNN::Anonymous::Logger::LogLevel::Fatal,EASYCNN_LOG_FORMATSTRING(fmt, __VA_ARGS__));
-#else
-#define EASYCNN_LOG_FATAL(fmt,...)
-#endif
