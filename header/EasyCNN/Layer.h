@@ -10,10 +10,18 @@
 
 namespace EasyCNN
 {
+	enum class Phase
+	{
+		Train,
+		Test
+	};
 	class Layer
 	{
 	public:
 		virtual std::string getLayerType() const = 0;
+		//phase
+		inline void setPhase(Phase phase) { this->phase = phase; }
+		inline Phase getPhase() const{ return phase; }
 		//learning rate
 		inline void setLearningRate(const float learningRate){ this->learningRate = learningRate; }
 		inline float getLearningRate() const{ return learningRate; }
@@ -28,6 +36,7 @@ namespace EasyCNN
 		virtual void forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket) = 0;
 		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket,std::shared_ptr<ParamBucket>& nextDiffBucket) = 0;
 	private:
+		Phase phase = Phase::Train;
 		DataSize inputSize;
 		DataSize outputSize;
 		float learningRate = 0.1f;

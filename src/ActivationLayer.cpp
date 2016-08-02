@@ -50,6 +50,7 @@ void EasyCNN::SigmodLayer::forward(const std::shared_ptr<DataBucket> prevDataBuc
 }
 void EasyCNN::SigmodLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
+	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
 	const ParamSize nextDiffSize = nextDiffBucket->getSize();
@@ -141,6 +142,7 @@ void EasyCNN::TanhLayer::forward(const std::shared_ptr<DataBucket> prevDataBucke
 }
 void EasyCNN::TanhLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
+	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
 	const ParamSize nextDiffSize = nextDiffBucket->getSize();
@@ -230,6 +232,7 @@ void EasyCNN::ReluLayer::forward(const std::shared_ptr<DataBucket> prevDataBucke
 }
 void EasyCNN::ReluLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
 {
+	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
 	const ParamSize nextDiffSize = nextDiffBucket->getSize();

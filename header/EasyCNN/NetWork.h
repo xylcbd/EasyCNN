@@ -3,6 +3,7 @@
 #include <vector>
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/Layer.h"
+#include "EasyCNN/LossFunction.h"
 
 namespace EasyCNN
 {
@@ -11,13 +12,28 @@ namespace EasyCNN
 	public:
 		NetWork();
 		virtual ~NetWork();
-		void addayer(std::shared_ptr<Layer> layer);
 	public:
+		//common
+		void setPhase(Phase phase);
+		Phase getPhase() const;
+		//test only!
+		bool loadModel(const std::string& modelFile);
+		std::shared_ptr<EasyCNN::DataBucket> testBatch(const std::shared_ptr<DataBucket> inputDataBucket);
+		//train only!
 		void setInputSize(const DataSize size);
+		void setLossFunctor(std::shared_ptr<LossFunctor> lossFunctor);
+		void addayer(std::shared_ptr<Layer> layer);
+		float trainBatch(const std::shared_ptr<DataBucket> inputDataBucket,
+			const std::shared_ptr<DataBucket> labelDataBucket, float learningRate);
+		bool saveModel(const std::string& modelFile);
+	private:
+		//common
 		std::shared_ptr<EasyCNN::DataBucket> forward(const std::shared_ptr<DataBucket> inputDataBucket);
 		float backward(const std::shared_ptr<DataBucket> labelDataBucket, float learningRate);
 	private:
+		Phase phase = Phase::Train;
 		std::vector<std::shared_ptr<Layer>> layers;
 		std::vector<std::shared_ptr<DataBucket>> dataBuckets;
+		std::shared_ptr<LossFunctor> lossFunctor;
 	};
 }
