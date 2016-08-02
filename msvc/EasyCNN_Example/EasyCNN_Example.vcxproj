@@ -147,7 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\examples\main.cpp" />
+    <ClCompile Include="..\..\examples\mnist_train_test.cpp" />
     <ClCompile Include="..\..\examples\mnist_data_loader.cpp" />
   </ItemGroup>
   <ItemGroup>
