@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 #include "EasyCNN/PoolingLayer.h"
 
 #if WITH_OPENCV_DEBUG
@@ -21,6 +22,41 @@ void EasyCNN::PoolingLayer::setParamaters(const PoolingType _poolingType, const 
 	poolingType = _poolingType;
 	widthStep = _widthStep;
 	heightStep = _heightStep;
+}
+std::string EasyCNN::PoolingLayer::serializeToString() const
+{
+	const std::string spliter = " ";
+	std::stringstream ss;
+	//layer desc
+	ss << getLayerType() << spliter
+		<< poolingType << spliter
+		<< poolingKernelSize.number << spliter
+		<< poolingKernelSize.channels << spliter
+		<< poolingKernelSize.width << spliter
+		<< poolingKernelSize.height << spliter
+		<< widthStep << spliter
+		<< heightStep << spliter;
+
+	return ss.str();
+}
+void EasyCNN::PoolingLayer::serializeFromString(const std::string content)
+{
+	std::stringstream ss(content);
+	//layer desc
+	std::string _layerType;
+	int _poolingType = 0;
+	ss >> _layerType 
+		>> _poolingType
+		>> poolingKernelSize.number
+		>> poolingKernelSize.channels
+		>> poolingKernelSize.width
+		>> poolingKernelSize.height
+		>> widthStep
+		>> heightStep;
+	poolingType = (PoolingType)_poolingType;
+	easyAssert(_layerType == getLayerType(),"layer type is invalidate.");
+	easyAssert((poolingType == MaxPooling || poolingType == MeanPooling), "pooling type is invalidate.");
+	solveInnerParams();
 }
 DEFINE_LAYER_TYPE(EasyCNN::PoolingLayer, "PoolingLayer");
 std::string EasyCNN::PoolingLayer::getLayerType() const

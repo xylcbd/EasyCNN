@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <fstream>
 //configure
 #include "EasyCNN/Configure.h"
 //layers
@@ -33,6 +34,82 @@ void EasyCNN::NetWork::setPhase(Phase phase)
 EasyCNN::Phase EasyCNN::NetWork::getPhase() const
 {
 	return phase;
+}
+std::string EasyCNN::NetWork::serializeToString() const
+{
+	const std::string spliter = " ";
+	std::stringstream ss;
+	const auto inputSize = dataBuckets[0]->getSize();
+	ss << inputSize.channels << spliter << inputSize.width << spliter << inputSize.height << spliter;
+	for (const auto& layer : layers)
+	{
+		ss << layer->getLayerType() << spliter;
+	}
+	return ss.str();
+}
+std::shared_ptr<EasyCNN::Layer> EasyCNN::NetWork::createLayerByType(const std::string layerType)
+{
+	if (layerType == InputLayer::layerType)
+	{
+		return std::make_shared<InputLayer>();
+	}
+	else if (layerType == ConvolutionLayer::layerType)
+	{
+		return std::make_shared<ConvolutionLayer>();
+	}
+	else if (layerType == PoolingLayer::layerType)
+	{
+		return std::make_shared<PoolingLayer>();
+	}
+	else if (layerType == FullconnectLayer::layerType)
+	{
+		return std::make_shared<FullconnectLayer>();
+	}
+	else if (layerType == SoftmaxLayer::layerType)
+	{
+		return std::make_shared<SoftmaxLayer>();
+	}
+	else if (layerType == SigmodLayer::layerType)
+	{
+		return std::make_shared<SigmodLayer>();
+	}
+	else if (layerType == TanhLayer::layerType)
+	{
+		return std::make_shared<TanhLayer>();
+	}
+	else if (layerType == ReluLayer::layerType)
+	{
+		return std::make_shared<ReluLayer>();
+	}
+	else
+	{
+		easyAssert(false,"can't goto here.");
+		return nullptr;
+	}
+}
+std::vector<std::shared_ptr<EasyCNN::Layer>> EasyCNN::NetWork::serializeFromString(const std::string content)
+{
+	int number = 1;
+	int channels = 0;
+	int width = 0;
+	int height = 0;
+	std::stringstream ss(content);
+	ss >> channels >> width >> height;
+	setInputSize(DataSize(number, channels, width, height));
+	std::vector<std::shared_ptr<EasyCNN::Layer>> tmpLayers;	
+	while (!ss.eof())
+	{
+		std::string layerType;
+		ss >> layerType;
+		if (layerType.empty())
+		{
+			continue;
+		}
+		std::shared_ptr<EasyCNN::Layer> layer = createLayerByType(layerType);
+		easyAssert(layer.get() != nullptr,"layer can't be null.");
+		tmpLayers.push_back(layer);
+	}
+	return tmpLayers;
 }
 std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket)
 {
@@ -98,7 +175,27 @@ float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labe
 //test only!
 bool EasyCNN::NetWork::loadModel(const std::string& modelFile)
 {
-	//TODO
+	std::ifstream ifs(modelFile);
+	if (!ifs.is_open())
+	{
+		return false;
+	}
+	//network param
+	std::string line;
+	std::getline(ifs, line);
+	std::vector<std::shared_ptr<EasyCNN::Layer>> tmpLayers = this->serializeFromString(line);
+	//layers' param
+	for (auto& layer : tmpLayers)
+	{
+		std::getline(ifs, line);
+		//init input size
+		const std::shared_ptr<DataBucket> prevDataBucket = dataBuckets[dataBuckets.size() - 1];
+		easyAssert(prevDataBucket.get() != nullptr, "previous bucket is null.");
+		const DataSize inputSize = prevDataBucket->getSize();
+		layer->setInputBucketSize(inputSize);
+		layer->serializeFromString(line);
+		addayer(layer);
+	}
 	setPhase(Phase::Test);
 	return false;
 }
@@ -156,6 +253,17 @@ float EasyCNN::NetWork::trainBatch(const std::shared_ptr<DataBucket> inputDataBu
 }
 bool EasyCNN::NetWork::saveModel(const std::string& modelFile)
 {
-	//TODO 
-	return false;
+	std::ofstream ofs(modelFile);
+	if (!ofs.is_open())
+	{
+		return false;
+	}
+	//network param
+	ofs << this->serializeToString() << std::endl;
+	//layers' param
+	for (const auto& layer : layers)
+	{		
+		ofs << layer->serializeToString() << std::endl;
+	}
+	return true;
 }
