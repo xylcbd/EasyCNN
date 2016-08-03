@@ -95,7 +95,7 @@ void EasyCNN::FullconnectLayer::solveInnerParams()
 	if (weightsData.get() == nullptr)
 	{
 		weightsData.reset(new ParamBucket(ParamSize(1, inputSize._3DSize()*outputSize._3DSize(), 1, 1)));
-		normal_distribution_init(weightsData->getData().get(), weightsData->getSize()._4DSize(), 0.0f, 01.f);
+		normal_distribution_init(weightsData->getData().get(), weightsData->getSize()._4DSize(), 0.0f, 0.1f);
 	}
 	if (enabledBias)
 	{

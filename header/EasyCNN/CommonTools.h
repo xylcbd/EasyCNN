@@ -11,8 +11,7 @@ namespace EasyCNN
 		std::normal_distribution<float> dist(mean_value,standard_deviation);
 		for (size_t i = 0; i < size;i++)
 		{
-			//for overflow
-			data[i] = dist(engine) / 10.0f;
+			data[i] = dist(engine);
 		}
 	}
 	inline void const_distribution_init(float* data, const size_t size, const float const_value)
