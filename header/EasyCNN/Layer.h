@@ -7,6 +7,7 @@
 
 #define DECLARE_LAYER_TYPE static const std::string layerType;
 #define DEFINE_LAYER_TYPE(class_type,type_string) const std::string class_type::layerType = type_string; 
+#define FRIEND_WITH_NETWORK friend class NetWork;
 
 namespace EasyCNN
 {
@@ -17,14 +18,17 @@ namespace EasyCNN
 	};
 	class Layer
 	{
-	public:
+		FRIEND_WITH_NETWORK
+	protected:
 		virtual std::string getLayerType() const = 0;
+		virtual std::string serializeToString() const{ return getLayerType(); };
+		virtual void serializeFromString(const std::string content){/*nop*/};
 		//phase
 		inline void setPhase(Phase phase) { this->phase = phase; }
 		inline Phase getPhase() const{ return phase; }
 		//learning rate
 		inline void setLearningRate(const float learningRate){ this->learningRate = learningRate; }
-		inline float getLearningRate() const{ return learningRate; }
+		inline float getLearningRate() const{ return learningRate; }	
 		//size
 		inline void setInputBucketSize(const DataSize size){ inputSize = size; }
 		inline DataSize getInputBucketSize() const{ return inputSize; }

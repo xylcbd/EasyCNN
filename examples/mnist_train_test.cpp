@@ -173,14 +173,12 @@ static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,co
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer 5
 	std::shared_ptr<EasyCNN::FullconnectLayer> _5_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_5_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 512, 1, 1));
-	_5_fullconnectLayer->setParamaters(true);
+	_5_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 512, 1, 1),true);
 	network.addayer(_5_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer 6
 	std::shared_ptr<EasyCNN::FullconnectLayer> _6_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_6_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 10, 1, 1));
-	_6_fullconnectLayer->setParamaters(true);
+	_6_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 10, 1, 1),true);
 	network.addayer(_6_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//soft max layer 6
@@ -200,20 +198,17 @@ static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, c
 	network.addayer(_0_inputLayer);
 	//full connect layer
 	std::shared_ptr<EasyCNN::FullconnectLayer> _1_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_1_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 512, 1, 1));
-	_1_fullconnectLayer->setParamaters(true);
+	_1_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 512, 1, 1),true);
 	network.addayer(_1_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer
 	std::shared_ptr<EasyCNN::FullconnectLayer> _2_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_2_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 256, 1, 1));
-	_2_fullconnectLayer->setParamaters(true);
+	_2_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 256, 1, 1),true);
 	network.addayer(_2_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//full connect layer
 	std::shared_ptr<EasyCNN::FullconnectLayer> _3_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_3_fullconnectLayer->setOutpuBuckerSize(EasyCNN::DataSize(batch, 10, 1, 1));
-	_3_fullconnectLayer->setParamaters(true);
+	_3_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 10, 1, 1),true);
 	network.addayer(_3_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//soft max layer
@@ -258,9 +253,9 @@ static void train(const std::string& mnist_train_images_file,
 	float learningRate = 0.01f;
 	const float decayRate = 0.1f;
 	const float minLearningRate = 0.000001f;
-	const size_t testAfterBatches = 100;
-	const size_t maxBatches = 100;
-	const size_t max_epoch = 100;
+	const size_t testAfterBatches = 1000;
+	const size_t maxBatches = 5000;
+	const size_t max_epoch = 1;
 	const size_t batch = 1;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;
@@ -310,7 +305,8 @@ static void train(const std::string& mnist_train_images_file,
 	}
 	const float accuracy = test(network, 128, validate_images, validate_labels);
 	EasyCNN::logCritical("final accuracy : %.4f%%",accuracy*100.0f);
-	network.saveModel(modelFilePath);
+	success = network.saveModel(modelFilePath);
+	assert(success);
 	EasyCNN::logCritical("finished training.");
 }
 
