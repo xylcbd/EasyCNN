@@ -1,3 +1,4 @@
+#include <sstream>
 #include "EasyCNN/ConvolutionLayer.h"
 #include "EasyCNN/CommonTools.h"
 
@@ -23,6 +24,59 @@ void EasyCNN::ConvolutionLayer::setParamaters(const ParamSize _kernelSize, const
 	heightStep = _heightStep;
 	enabledBias = _enabledBias;
 }
+std::string EasyCNN::ConvolutionLayer::serializeToString() const
+{
+	const std::string spliter = " ";
+	std::stringstream ss;	
+	//layer desc
+	ss << getLayerType() << spliter
+		<< kernelSize.number << spliter << kernelSize.channels << spliter << kernelSize.width << spliter << kernelSize.height << spliter
+		<< widthStep << spliter << heightStep << spliter << enabledBias << spliter;
+	//weight
+	const auto kernel = kernelData->getData().get();
+	for (size_t i = 0; i < kernelSize._4DSize();i++)
+	{
+		ss << kernel[i] << spliter;
+	}
+	//bias
+	if (enabledBias)
+	{
+		const auto bias = biasData->getData().get();
+		const auto biasSize = biasData->getSize();
+		for (size_t i = 0; i < biasSize._4DSize(); i++)
+		{
+			ss << bias[i] << spliter;
+		}
+	}
+	return ss.str();
+}
+void EasyCNN::ConvolutionLayer::serializeFromString(const std::string content)
+{
+	std::stringstream ss(content);
+	//layer desc
+	std::string _layerType;
+	ss >> _layerType
+		>> kernelSize.number >> kernelSize.channels >> kernelSize.width >> kernelSize.height
+		>> widthStep >> heightStep >> enabledBias;
+	easyAssert(_layerType == layerType, "layer type is invalidate.");
+	solveInnerParams();
+	//weight
+	auto kernel = kernelData->getData().get();
+	for (size_t i = 0; i < kernelSize._4DSize(); i++)
+	{
+		ss >> kernel[i];
+	}
+	//bias
+	if (enabledBias)
+	{
+		const auto bias = biasData->getData().get();
+		const auto biasSize = biasData->getSize();
+		for (size_t i = 0; i < biasSize._4DSize(); i++)
+		{
+			ss >> bias[i];
+		}
+	}
+}
 DEFINE_LAYER_TYPE(EasyCNN::ConvolutionLayer, "ConvolutionLayer");
 std::string EasyCNN::ConvolutionLayer::getLayerType() const
 {
@@ -42,13 +96,18 @@ void EasyCNN::ConvolutionLayer::solveInnerParams()
 	outputSize.height = (inputSize.height-kernelSize.height) / heightStep + 1;
 	setOutpuBuckerSize(outputSize);
 	easyAssert(outputSize.number > 0 && outputSize.channels > 0 && outputSize.width > 0 && outputSize.height > 0, "output size is invalidate.");
-	kernelData.reset(new ParamBucket(kernelSize));
-	normal_distribution_init(kernelData->getData().get(), kernelData->getSize()._4DSize(),0.0f,01.f);
-
+	if (kernelData.get() == nullptr)
+	{
+		kernelData.reset(new ParamBucket(kernelSize));
+		normal_distribution_init(kernelData->getData().get(), kernelData->getSize()._4DSize(), 0.0f, 01.f);
+	}
 	if (enabledBias)
 	{
-		biasData.reset(new ParamBucket(ParamSize(kernelSize.number, 1, 1, 1)));
-		const_distribution_init(biasData->getData().get(), biasData->getSize()._4DSize(), 0.0f);
+		if (biasData.get() == nullptr)
+		{
+			biasData.reset(new ParamBucket(ParamSize(kernelSize.number, 1, 1, 1)));
+			const_distribution_init(biasData->getData().get(), biasData->getSize()._4DSize(), 0.0f);
+		}
 	}
 }
 void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
