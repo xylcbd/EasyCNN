@@ -4,7 +4,7 @@ Easy convolution network.
 ## Features
 * Basic layer : data layer,convolution layer,pooling layer,full connect layer,softmax layer.
 * Loss function : Cross Entropy,MSE.
-* Optimize method : SGD
+* Optimize method : SGD.
 
 ## Demo
 * mnist demo :  [examples/mnist_train_test.cpp](./examples/mnist_train_test.cpp "mnist_train_test.cpp")
@@ -15,3 +15,6 @@ Easy convolution network.
 * add more layer,such as batch normalization layer,dropout layer,etc.
 * port to other platforms,such as linux,mac,android,iOS,etc.
 * optimize network train/test speed.
+* add more optimize method.
+* add unit test
+* add license.
