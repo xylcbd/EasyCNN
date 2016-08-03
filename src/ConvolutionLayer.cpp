@@ -99,7 +99,7 @@ void EasyCNN::ConvolutionLayer::solveInnerParams()
 	if (kernelData.get() == nullptr)
 	{
 		kernelData.reset(new ParamBucket(kernelSize));
-		normal_distribution_init(kernelData->getData().get(), kernelData->getSize()._4DSize(), 0.0f, 01.f);
+		normal_distribution_init(kernelData->getData().get(), kernelData->getSize()._4DSize(), 0.0f, 0.1f);
 	}
 	if (enabledBias)
 	{

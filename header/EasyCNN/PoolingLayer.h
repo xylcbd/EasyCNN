@@ -27,7 +27,6 @@ namespace EasyCNN
 		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket) override;
 	private:
 		PoolingType poolingType = PoolingType::MaxPooling;
-		//FIXME : using int type
 		std::shared_ptr<ParamBucket> maxIdxesBucket;
 		ParamSize poolingKernelSize;
 		size_t widthStep = 0;

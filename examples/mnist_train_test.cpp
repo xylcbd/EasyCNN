@@ -217,6 +217,28 @@ static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, c
 
 	return network;
 }
+static void shuffle_data(std::vector<image_t>& images, std::vector<label_t>& labels)
+{
+	assert(images.size() == labels.size());
+	std::vector<size_t> indexArray;
+	for (size_t i = 0; i < images.size();i++)
+	{
+		indexArray.push_back(i);
+	}
+	std::random_shuffle(indexArray.begin(), indexArray.end());
+
+	std::vector<image_t> tmpImages(images.size());
+	std::vector<label_t> tmpLabels(labels.size());
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		const size_t srcIndex = i;
+		const size_t dstIndex = indexArray[i];
+		tmpImages[srcIndex] = images[dstIndex];
+		tmpLabels[srcIndex] = labels[dstIndex];
+	}
+	images = tmpImages;
+	labels = tmpLabels;
+}
 static void train(const std::string& mnist_train_images_file,
 	const std::string& mnist_train_labels_file,
 	const std::string& modelFilePath)
@@ -234,8 +256,8 @@ static void train(const std::string& mnist_train_images_file,
 	std::vector<label_t> labels;
 	success = load_mnist_labels(mnist_train_labels_file, labels);
 	assert(success && labels.size() > 0);
-	assert(images.size() == labels.size());
-	//TODO : shuffle input data
+	assert(images.size() == labels.size());	
+	shuffle_data(images, labels);
 
 	//train data & validate data
 	//train
@@ -251,11 +273,11 @@ static void train(const std::string& mnist_train_images_file,
 	EasyCNN::logCritical("load training data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
 
 	float learningRate = 0.01f;
-	const float decayRate = 0.1f;
+	const float decayRate = 0.0001f;
 	const float minLearningRate = 0.000001f;
-	const size_t testAfterBatches = 1000;
-	const size_t maxBatches = 5000;
-	const size_t max_epoch = 1;
+	const size_t testAfterBatches = 3000;
+	const size_t maxBatches = 60000;
+	const size_t max_epoch = 3;
 	const size_t batch = 1;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;
@@ -285,14 +307,17 @@ static void train(const std::string& mnist_train_images_file,
 			const float loss = network.trainBatch(inputDataBucket,labelDataBucket, learningRate);
 			if (batchIdx > 0 && batchIdx % testAfterBatches == 0)
 			{
+				learningRate -= decayRate;
+				learningRate = std::max(learningRate, minLearningRate);
 				const float accuracy = test(network,128,validate_images, validate_labels);
-				EasyCNN::logCritical("sample : %d/%d , loss : %f , accuracy : %.4f%%", batchIdx*batch, train_images.size(), loss, accuracy*100.0f);
+				EasyCNN::logCritical("sample : %d/%d , learningRate : %f , loss : %f , accuracy : %.4f%%", 
+					batchIdx*batch, train_images.size(), learningRate, loss, accuracy*100.0f);
 			}
 			if (batchIdx >= maxBatches)
 			{
 				break;
 			}
-			batchIdx++;
+			batchIdx++;			
 		}
 		if (batchIdx >= maxBatches)
 		{
@@ -300,8 +325,6 @@ static void train(const std::string& mnist_train_images_file,
 		}
 		const float accuracy = test(network,128,validate_images, validate_labels);
 		EasyCNN::logCritical("epoch[%d] accuracy : %.4f%%", epochIdx++, accuracy*100.0f);
-		learningRate *= decayRate;
-		learningRate = std::max(learningRate, minLearningRate);
 	}
 	const float accuracy = test(network, 128, validate_images, validate_labels);
 	EasyCNN::logCritical("final accuracy : %.4f%%",accuracy*100.0f);
