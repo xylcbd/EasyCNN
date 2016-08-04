@@ -273,12 +273,12 @@ static void train(const std::string& mnist_train_images_file,
 	EasyCNN::logCritical("load training data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
 
 	float learningRate = 0.1f;
-	const float decayRate = 0.0001f;
-	const float minLearningRate = 0.000001f;
-	const size_t testAfterBatches = 50;
-	const size_t maxBatches = 60000;
-	const size_t max_epoch = 3;
-	const size_t batch = 64;
+	const float decayRate = 0.001f;
+	const float minLearningRate = 0.001f;
+	const size_t testAfterBatches = 200;
+	const size_t maxBatches = 10000;
+	const size_t max_epoch = 4;
+	const size_t batch = 16;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;
 	const size_t height = images[0].height;
@@ -379,6 +379,7 @@ int main(int argc, char* argv[])
 	train(mnist_train_images_file, mnist_train_labels_file, model_file);
 	system("pause");
 
+	//NOTE : NEVER NEVER fine tune network for the test accuracy!!!
 	const std::string mnist_test_images_file = "../../res/mnist_data/t10k-images.idx3-ubyte";
 	const std::string mnist_test_labels_file = "../../res/mnist_data/t10k-labels.idx1-ubyte";
 	test(mnist_test_images_file, mnist_test_labels_file, model_file);
