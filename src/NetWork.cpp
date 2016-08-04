@@ -156,7 +156,7 @@ float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labe
 	const float loss = lossFunctor->getLoss(labelDataBucket, lastOutputData);
 
 	//get diff
-	std::shared_ptr<ParamBucket> nextDiffBucket = lossFunctor->getDiff(labelDataBucket, lastOutputData);
+	std::shared_ptr<DataBucket> nextDiffBucket = lossFunctor->getDiff(labelDataBucket, lastOutputData);
 
 	//other layer backward
 	for (int i = (int)(layers.size()) - 1; i >= 0; i--)

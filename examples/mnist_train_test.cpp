@@ -261,8 +261,8 @@ static void train(const std::string& mnist_train_images_file,
 
 	//train data & validate data
 	//train
-	std::vector<image_t> train_images(static_cast<size_t>(images.size()*0.8f));
-	std::vector<label_t> train_labels(static_cast<size_t>(labels.size()*0.8f));
+	std::vector<image_t> train_images(static_cast<size_t>(images.size()*0.9f));
+	std::vector<label_t> train_labels(static_cast<size_t>(labels.size()*0.9f));
 	std::copy(images.begin(), images.begin() + train_images.size(), train_images.begin());
 	std::copy(labels.begin(), labels.begin() + train_labels.size(), train_labels.begin());
 	//validate
@@ -272,13 +272,13 @@ static void train(const std::string& mnist_train_images_file,
 	std::copy(labels.begin() + train_labels.size(), labels.end(), validate_labels.begin());
 	EasyCNN::logCritical("load training data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
 
-	float learningRate = 0.01f;
+	float learningRate = 0.1f;
 	const float decayRate = 0.0001f;
 	const float minLearningRate = 0.000001f;
-	const size_t testAfterBatches = 3000;
+	const size_t testAfterBatches = 50;
 	const size_t maxBatches = 60000;
 	const size_t max_epoch = 3;
-	const size_t batch = 1;
+	const size_t batch = 64;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;
 	const size_t height = images[0].height;

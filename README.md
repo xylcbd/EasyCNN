@@ -11,13 +11,14 @@ Easy convolution network.
 * mnist demo , with ConvNet and MLP net,  [examples/mnist_train_test.cpp](./examples/mnist_train_test.cpp "mnist_train_test.cpp")
 
 ## Todo List
-* fix train error when batch > 1 issue.
+* ~~fix train error when batch > 1 issue.~~
 * ~~add load & save model function.~~
 * add more layer,such as batch normalization layer,dropout layer,etc.
+* add weight regular,momentum.
 * port to other platforms,such as linux,mac,android,iOS,etc.
 * optimize network train/test speed.
 * add more optimize method.
-* add unit test
+* add unit test.
 * ~~add license.~~
 
 ## Bug Report
