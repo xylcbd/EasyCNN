@@ -199,12 +199,12 @@ void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDa
 	}
 #endif //WITH_OPENCV_DEBUG
 }
-void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
+void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
 {
 	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
-	const ParamSize nextDiffSize = nextDiffBucket->getSize();
+	const DataSize nextDiffSize = nextDiffBucket->getSize();
 	const ParamSize biasSize = biasData->getSize();
 	const float* prevData = prevDataBucket->getData().get();
 	const float* nextData = nextDataBucket->getData().get();
@@ -214,8 +214,8 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 
 	//////////////////////////////////////////////////////////////////////////
 	//update prevDiff data
-	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
-	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
+	const DataSize prevDiffSize(prevDataSize.number, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDiffSize));
 	prevDiffBucket->fillData(0.0f);
 	float* prevDiff = prevDiffBucket->getData().get();
 	//calculate current inner diff
@@ -229,7 +229,7 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 				{
 					const size_t inStartX = nw*widthStep;
 					const size_t inStartY = nh*heightStep;
-					const size_t nextDiffIdx = nextDataSize.getIndex(nc, nh, nw);
+					const size_t nextDiffIdx = nextDataSize.getIndex(pn,nc, nh, nw);
 					const size_t kn = nc;
 					for (size_t kc = 0; kc < kernelSize.channels; kc++)
 					{
@@ -237,9 +237,9 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 						{
 							for (size_t kw = 0; kw < kernelSize.width;kw++)
 							{
-								const size_t prevDiffIdx = prevDiffSize.getIndex(0, kc, inStartY + kh, inStartX + kw);
+								const size_t prevDiffIdx = prevDiffSize.getIndex(pn, kc, inStartY + kh, inStartX + kw);
 								const size_t kernelIdx = kernelSize.getIndex(kn, kc, kh, kw);
-								prevDiff[prevDiffIdx] += kernel[kernelIdx] * nextDiff[nextDiffIdx] / nextDataSize.number;
+								prevDiff[prevDiffIdx] += kernel[kernelIdx] * nextDiff[nextDiffIdx];
 							}
 						}
 					}
@@ -265,7 +265,7 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 				{
 					const size_t inStartX = nw*widthStep;
 					const size_t inStartY = nh*heightStep;
-					const size_t nextDiffIdx = nextDataSize.getIndex(nc, nh, nw);
+					const size_t nextDiffIdx = nextDataSize.getIndex(pn,nc, nh, nw);
 					const size_t kn = nc;
 					for (size_t kc = 0; kc < kernelSize.channels; kc++)
 					{
@@ -275,7 +275,7 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 							{
 								const size_t kernelDiffIdx = kernelDiffSize.getIndex(kn, kc, kh, kw);
 								const size_t prevDataIdx = prevDataSize.getIndex(pn, kc, inStartY + kh, inStartX + kw);
-								kernelDiff[kernelDiffIdx] += prevData[prevDataIdx] * nextDiff[nextDiffIdx] / nextDataSize.number;
+								kernelDiff[kernelDiffIdx] += prevData[prevDataIdx] * nextDiff[nextDiffIdx];
 							}
 						}
 					}
@@ -286,7 +286,7 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 	//apply change
 	for (size_t kernelIdx = 0; kernelIdx < kernelSize._4DSize();kernelIdx++)
 	{
-		kernel[kernelIdx] -= getLearningRate()*kernelDiff[kernelIdx];
+		kernel[kernelIdx] -= getLearningRate()*kernelDiff[kernelIdx] / nextDataSize.number;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -304,8 +304,8 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 			{
 				for (size_t nw = 0; nw < nextDiffSize.width; nw++)
 				{
-					const size_t nextDiffIdx = nextDiffSize.getIndex(0,nc,nh,nw);
-					biasDiff[biasDiffIdx] += 1.0f*nextDiff[nextDiffIdx] / nextDataSize.number;
+					const size_t nextDiffIdx = nextDiffSize.getIndex(pn,nc,nh,nw);
+					biasDiff[biasDiffIdx] += 1.0f*nextDiff[nextDiffIdx];
 				}
 			}
 		}
@@ -313,7 +313,7 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 	//apply change
 	for (size_t biasIdx = 0; biasIdx < biasSize._4DSize(); biasIdx++)
 	{
-		bias[biasIdx] -= getLearningRate()*biasDiff[biasIdx];
+		bias[biasIdx] -= getLearningRate()*biasDiff[biasIdx] / nextDataSize.number;
 	}
 
 	//////////////////////////////////////////////////////////////////////////

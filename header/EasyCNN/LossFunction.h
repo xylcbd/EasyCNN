@@ -11,7 +11,7 @@ namespace EasyCNN
 	public:
 		virtual float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
 			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket) = 0;
-		virtual std::shared_ptr<EasyCNN::ParamBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
+		virtual std::shared_ptr<EasyCNN::DataBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
 			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket) = 0;
 	};
 
@@ -20,7 +20,7 @@ namespace EasyCNN
 	public:
 		virtual float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
 			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
-		virtual std::shared_ptr<EasyCNN::ParamBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
+		virtual std::shared_ptr<EasyCNN::DataBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
 			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
 	};
 
@@ -29,7 +29,7 @@ namespace EasyCNN
 	public:
 		virtual float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
 			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
-		virtual std::shared_ptr<EasyCNN::ParamBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
+		virtual std::shared_ptr<EasyCNN::DataBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
 			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
 	};
 }
