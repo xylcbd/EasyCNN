@@ -8,7 +8,8 @@ Easy convolution network.
 * Optimize method : SGD.
 
 ## Examples
-* mnist demo , with ConvNet and MLP net,  [examples/mnist_train_test.cpp](./examples/mnist_train_test.cpp "mnist_train_test.cpp")
+* mnist demo , with ConvNet and MLP net,  [examples/mnist_train_test.cpp](./examples/mnist_train_test.cpp "mnist_train_test.cpp")  
+![](./res/images/mnist_accuracy.png "mnist accuracy")
 
 ## Todo List
 * ~~fix train error when batch > 1 issue.~~
