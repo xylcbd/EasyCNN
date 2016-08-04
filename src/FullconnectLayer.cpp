@@ -89,7 +89,9 @@ void EasyCNN::FullconnectLayer::serializeFromString(const std::string content)
 void EasyCNN::FullconnectLayer::solveInnerParams()
 {
 	const DataSize inputSize = getInputBucketSize();
-	const DataSize outputSize = getOutputBucketSize();
+	DataSize outputSize = getOutputBucketSize();
+	outputSize.number = inputSize.number;
+	setOutpuBuckerSize(outputSize);
 	easyAssert(inputSize.number > 0 && inputSize.channels > 0 && inputSize.width > 0 && inputSize.height > 0, "input size or step is invalidate.");
 	easyAssert(outputSize.number > 0 && outputSize.channels > 0 && outputSize.width == 1 && outputSize.height == 1, "output size is invalidate.");
 	if (weightsData.get() == nullptr)
@@ -142,12 +144,12 @@ void EasyCNN::FullconnectLayer::forward(const std::shared_ptr<DataBucket> prevDa
 		}//oc
 	}//on
 }
-void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
+void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
 {
 	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
-	const ParamSize nextDiffSize = nextDiffBucket->getSize();
+	const DataSize nextDiffSize = nextDiffBucket->getSize();
 	const ParamSize weightSize = weightsData->getSize();
 	const ParamSize biasSize = enabledBias ? biasData->getSize() : ParamSize();
 	const float* prevData = prevDataBucket->getData().get();
@@ -164,8 +166,8 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 
 	//////////////////////////////////////////////////////////////////////////
 	//update prevDiff data
-	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
-	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
+	const DataSize prevDiffSize(prevDataSize.number, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDiffSize));
 	prevDiffBucket->fillData(0.0f);
 	float* prevDiff = prevDiffBucket->getData().get();
 	//calculate current inner diff && multiply next diff
@@ -177,12 +179,12 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 			{
 				for (size_t pw = 0; pw < prevDiffSize.width; pw++)
 				{
-					const size_t prevDiffIdx = prevDiffSize.getIndex(pc, ph, pw);
+					const size_t prevDiffIdx = prevDiffSize.getIndex(pn,pc, ph, pw);
 					for (size_t nc = 0; nc < nextDiffSize.channels; nc++)
 					{
 						const size_t weightIdx = nc*prevDataSize._3DSize() + prevDataSize.getIndex(pc, ph, pw);
-						const size_t nextDiffIdx = nc;
-						prevDiff[prevDiffIdx] += weight[weightIdx] * nextDiff[nextDiffIdx] / nextDataSize.number;
+						const size_t nextDiffIdx = pn*nextDiffSize._3DSize() + nc;
+						prevDiff[prevDiffIdx] += weight[weightIdx] * nextDiff[nextDiffIdx];
 					}
 				}
 			}
@@ -200,19 +202,19 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 	{
 		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
 		{
-			const size_t nextDiffIdx = nc;				
+			const size_t nextDiffIdx = nn*nextDiffSize._3DSize() + nc;				
 			for (size_t prevData3DIdx = 0; prevData3DIdx < prevDataSize._3DSize(); prevData3DIdx++)
 			{					
 				const size_t weightDiffIdx = nc*prevDiffSize._3DSize() + prevData3DIdx;
 				const size_t prevDataIdx = nn*prevDataSize._3DSize() + prevData3DIdx;					
-				weightDiff[weightDiffIdx] += prevData[prevDataIdx] * nextDiff[nextDiffIdx] / nextDataSize.number;
+				weightDiff[weightDiffIdx] += prevData[prevDataIdx] * nextDiff[nextDiffIdx];
 			}
 		}
 	}
 	//apply change
 	for (size_t weightIdx = 0; weightIdx < weightSize._4DSize(); weightIdx++)
 	{
-		weight[weightIdx] -= getLearningRate() * weightDiff[weightIdx];
+		weight[weightIdx] -= getLearningRate() * weightDiff[weightIdx] / nextDataSize.number;
 	}
 	//////////////////////////////////////////////////////////////////////////
 	//update bias
@@ -222,14 +224,17 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 		std::shared_ptr<ParamBucket> biasDiffBucket(std::make_shared<ParamBucket>(biasSize));
 		biasDiffBucket->fillData(0.0f);
 		float* biasDiff = biasDiffBucket->getData().get();
-		for (size_t biasDiffIdx = 0; biasDiffIdx < biasSize._4DSize(); biasDiffIdx++)
+		for (size_t nn = 0; nn < nextDataSize.number; nn++)
 		{
-			biasDiff[biasDiffIdx] += 1.0f*nextDiff[biasDiffIdx] / nextDataSize.number;
+			for (size_t biasDiffIdx = 0; biasDiffIdx < biasSize._3DSize(); biasDiffIdx++)
+			{
+				biasDiff[biasDiffIdx] += 1.0f*nextDiff[nn*biasSize._3DSize() + biasDiffIdx];
+			}
 		}
 		//apply change
 		for (size_t biasDiffIdx = 0; biasDiffIdx < biasSize._4DSize(); biasDiffIdx++)
 		{
-			bias[biasDiffIdx] -= getLearningRate() * biasDiff[biasDiffIdx];
+			bias[biasDiffIdx] -= getLearningRate() * biasDiff[biasDiffIdx] / nextDataSize.number;
 		}
 	}
 

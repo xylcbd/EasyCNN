@@ -183,28 +183,27 @@ void EasyCNN::PoolingLayer::forward(const std::shared_ptr<DataBucket> prevDataBu
 	}
 #endif //WITH_OPENCV_DEBUG
 }
-void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<ParamBucket>& nextDiffBucket)
+void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
 {
 	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
 	const DataSize prevDataSize = prevDataBucket->getSize();
 	const DataSize nextDataSize = nextDataBucket->getSize();
-	const ParamSize nextDiffSize = nextDiffBucket->getSize();
-	const float* prevData = prevDataBucket->getData().get();
-	const float* nextData = nextDataBucket->getData().get();
-	const float* nextDiff = nextDiffBucket->getData().get();
+	const DataSize nextDiffSize = nextDiffBucket->getSize();
 	easyAssert(maxIdxesBucket->getSize()._3DSize() == nextDataSize._3DSize(),"idx size must equals with next data.");
 
 	//update prevDiff data
 	const float* maxIdxes = maxIdxesBucket->getData().get();	
-	const ParamSize prevDiffSize(1, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
-	std::shared_ptr<ParamBucket> prevDiffBucket(std::make_shared<ParamBucket>(prevDiffSize));
+	const DataSize prevDiffSize(prevDataSize.number, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
+	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDiffSize));
 	prevDiffBucket->fillData(0.0f);
-	float* prevDiff = prevDiffBucket->getData().get();
 	//calculate current inner diff 
 	//none
 	//pass next layer's diff to previous layer
 	for (size_t pn = 0; pn < prevDataSize.number; pn++)
 	{
+		const float* nextDiff = nextDiffBucket->getData().get() + pn*nextDiffSize._3DSize();
+		float* prevDiff = prevDiffBucket->getData().get() + pn*prevDiffSize._3DSize();
+
 		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
 		{
 			for (size_t nh = 0; nh < nextDataSize.height; nh++)
@@ -223,7 +222,7 @@ void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket,
 								const size_t prevDiffIdx = prevDataSize.getIndex(nc, inStartY + ph, inStartX + pw);
 								if (ph*poolingKernelSize.width + pw == maxIdxes[nextDataIdx])
 								{
-									prevDiff[prevDiffIdx] += nextDiff[nextDataIdx] / nextDataSize.number;
+									prevDiff[prevDiffIdx] += nextDiff[nextDataIdx];
 								}
 							}
 						}
@@ -235,7 +234,7 @@ void EasyCNN::PoolingLayer::backward(std::shared_ptr<DataBucket> prevDataBucket,
 							for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 							{
 								const size_t prevDiffIdx = prevDataSize.getIndex(nc, inStartY + ph, inStartX + pw);
-								prevDiff[prevDiffIdx] += meanDiff / nextDataSize.number;
+								prevDiff[prevDiffIdx] += meanDiff;
 							}
 						}
 					}
