@@ -94,7 +94,7 @@ static uint8_t getMaxIdxInArray(const float* start, const float* stop)
 	}
 	return (uint8_t)result;
 }
-static float test(EasyCNN::NetWork& network, const size_t batch,const std::vector<image_t> test_images, std::vector<label_t> test_labels)
+static float test(EasyCNN::NetWork& network, const size_t batch,const std::vector<image_t>& test_images,const std::vector<label_t>& test_labels)
 {
 	assert(test_images.size() == test_labels.size() && test_images.size()>0);
 	int correctCount = 0;
@@ -371,7 +371,7 @@ static void test(const std::string& mnist_test_images_file,
 	EasyCNN::logCritical("accuracy : %.4f%%", accuracy*100.0f);
 	EasyCNN::logCritical("finished test.");
 }
-int main(int argc, char* argv[])
+int mnist_main(int argc, char* argv[])
 {
 	const std::string model_file = "../../res/model/mnist_mlp.model";
 	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";
