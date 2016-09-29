@@ -1,5 +1,5 @@
 ## EasyCNN
-Easy convolution network.
+Easy convolution neural network.
 
 ## Features
 * All in one : without any dependency,pure c++ implemented.
