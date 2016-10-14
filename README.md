@@ -1,5 +1,7 @@
 ## EasyCNN
-Easy convolution neural network.
+Easy convolution neural network framework. 
+ 
+small , clean , easy to understand !
 
 ## Features
 * All in one : without any dependency,pure c++ implemented.
