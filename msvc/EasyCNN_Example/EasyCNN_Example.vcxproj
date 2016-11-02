@@ -87,11 +87,17 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\examples\common\utils.cpp" />
+    <ClCompile Include="..\..\examples\digit\digit_data_loader.cpp" />
+    <ClCompile Include="..\..\examples\digit\digit_train_test.cpp" />
     <ClCompile Include="..\..\examples\main.cpp" />
     <ClCompile Include="..\..\examples\mnist\mnist_data_loader.cpp" />
     <ClCompile Include="..\..\examples\mnist\mnist_train_test.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\examples\common\dirent.h" />
+    <ClInclude Include="..\..\examples\common\utils.h" />
+    <ClInclude Include="..\..\examples\digit\digit_data_loader.h" />
     <ClInclude Include="..\..\examples\mnist\mnist_data_loader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
