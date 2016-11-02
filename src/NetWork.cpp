@@ -197,7 +197,7 @@ bool EasyCNN::NetWork::loadModel(const std::string& modelFile)
 		addayer(layer);
 	}
 	setPhase(Phase::Test);
-	return false;
+	return true;
 }
 //train phase may use this
 std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::testBatch(const std::shared_ptr<DataBucket> inputDataBucket)
