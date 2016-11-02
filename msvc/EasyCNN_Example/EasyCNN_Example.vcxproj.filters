@@ -16,6 +16,12 @@
     <Filter Include="Source Files\mnist">
       <UniqueIdentifier>{6ca81be9-88d1-45d5-8955-3cf20b78a634}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\digit">
+      <UniqueIdentifier>{21e381d1-3841-4002-be74-29bc0e779366}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common">
+      <UniqueIdentifier>{1548bc69-8d84-4970-b25b-cf99d8f5ab91}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\examples\mnist\mnist_data_loader.cpp">
@@ -27,10 +33,28 @@
     <ClCompile Include="..\..\examples\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\examples\digit\digit_data_loader.cpp">
+      <Filter>Source Files\digit</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\examples\digit\digit_train_test.cpp">
+      <Filter>Source Files\digit</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\examples\common\utils.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\examples\mnist\mnist_data_loader.h">
       <Filter>Source Files\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\examples\digit\digit_data_loader.h">
+      <Filter>Source Files\digit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\examples\common\dirent.h">
+      <Filter>Source Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\examples\common\utils.h">
+      <Filter>Source Files\common</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
