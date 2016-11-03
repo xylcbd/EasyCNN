@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 //configure
 #include "EasyCNN/Configure.h"
 //layers
@@ -183,11 +185,13 @@ bool EasyCNN::NetWork::loadModel(const std::string& modelFile)
 	//network param
 	std::string line;
 	std::getline(ifs, line);
+	line = decrypt(line);
 	std::vector<std::shared_ptr<EasyCNN::Layer>> tmpLayers = this->serializeFromString(line);
 	//layers' param
 	for (auto& layer : tmpLayers)
 	{
 		std::getline(ifs, line);
+		line = decrypt(line);
 		//init input size
 		const std::shared_ptr<DataBucket> prevDataBucket = dataBuckets[dataBuckets.size() - 1];
 		easyAssert(prevDataBucket.get() != nullptr, "previous bucket is null.");
@@ -259,11 +263,35 @@ bool EasyCNN::NetWork::saveModel(const std::string& modelFile)
 		return false;
 	}
 	//network param
-	ofs << this->serializeToString() << std::endl;
+	ofs << encrypt(this->serializeToString()) + "\n";
 	//layers' param
 	for (const auto& layer : layers)
 	{		
-		ofs << layer->serializeToString() << std::endl;
+		ofs << encrypt(layer->serializeToString()) + "\n";
 	}
 	return true;
+}
+
+//toy crypt only now! you can custom it.
+std::string EasyCNN::NetWork::encrypt(const std::string& content)
+{
+	std::string message = content;
+	for (int i = 0; i < message.size(); i++)
+	{
+		message[i] -= 15;
+	}
+	return message;
+}
+std::string EasyCNN::NetWork::decrypt(const std::string& content)
+{
+	std::string message = content;
+	if (message[message.size()-1] == '\n')
+	{
+		message = message.substr(0, message.size() - 1);
+	}
+	for (int i = 0; i < message.size(); i++)
+	{
+		message[i] += 15;
+	}
+	return message;
 }

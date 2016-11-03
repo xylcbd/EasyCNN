@@ -27,6 +27,9 @@ namespace EasyCNN
 			const std::shared_ptr<DataBucket> labelDataBucket, float learningRate);
 		bool saveModel(const std::string& modelFile);
 	private:
+		std::string encrypt(const std::string& content);
+		std::string decrypt(const std::string& content);
+	private:
 		//common
 		std::shared_ptr<EasyCNN::DataBucket> forward(const std::shared_ptr<DataBucket> inputDataBucket);
 		float backward(const std::shared_ptr<DataBucket> labelDataBucket, float learningRate);
