@@ -2,6 +2,10 @@
 #include <iomanip>
 #include "EasyCNN/EasyLogger.h"
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif //__ANDROID__ 
+
 #ifdef _MSC_VER
 #pragma warning(disable:4996)
 #endif
@@ -52,8 +56,12 @@ namespace EasyCNN
 	static void defaultLogRoute(const LogLevel level, const std::string& content)
 	{
 		const std::string innerContent = buildInnerContent(level, content);
+#ifdef __ANDROID__
+		__android_log_print(ANDROID_LOG_INFO, "digit", "log : %s", innerContent.c_str());
+#else
 		std::cout << innerContent;
 		std::cout.flush();
+#endif //__ANDROID__
 	}
 
 	//////////////////////////////////////////////////////////////////////////

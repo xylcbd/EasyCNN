@@ -85,6 +85,7 @@ std::shared_ptr<EasyCNN::Layer> EasyCNN::NetWork::createLayerByType(const std::s
 	}
 	else
 	{
+		logVerbose("layer type : %s", layerType.c_str());
 		easyAssert(false,"can't goto here.");
 		return nullptr;
 	}
@@ -285,10 +286,7 @@ std::string EasyCNN::NetWork::encrypt(const std::string& content)
 std::string EasyCNN::NetWork::decrypt(const std::string& content)
 {
 	std::string message = content;
-	if (message[message.size()-1] == '\n')
-	{
-		message = message.substr(0, message.size() - 1);
-	}
+	message = message.substr(0, message.size() - 1);
 	for (int i = 0; i < message.size(); i++)
 	{
 		message[i] += 15;
