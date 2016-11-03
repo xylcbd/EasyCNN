@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdlib>
 #include "EasyCNN/EasyAssert.h"
 #include "EasyCNN/EasyLogger.h"
 
