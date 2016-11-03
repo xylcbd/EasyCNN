@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <memory>
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/EasyLogger.h"

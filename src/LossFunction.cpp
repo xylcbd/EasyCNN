@@ -1,3 +1,4 @@
+#include <cmath>
 #include "EasyCNN/LossFunction.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,7 +50,7 @@ float EasyCNN::MSEFunctor::getLoss(const std::shared_ptr<EasyCNN::DataBucket> la
 	float loss = 0.0f;
 	for (size_t i = 0; i < outputSize._4DSize(); i++)
 	{
-		loss += std::pow(outputData[i] - labelData[i],2) / outputSize.number;
+		loss += (outputData[i] - labelData[i])*(outputData[i] - labelData[i]) / outputSize.number;
 	}
 	return loss;
 }
