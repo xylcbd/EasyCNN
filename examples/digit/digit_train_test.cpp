@@ -277,7 +277,7 @@ static void train(const std::string& digit_train_images_dir,
 	const float minLearningRate = 0.0001f;
 	const size_t testAfterBatches = 200;
 	const size_t maxBatches = 10000000;
-	const size_t max_epoch = 10;
+	const size_t max_epoch = 4;
 	const size_t batch = 16;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;
@@ -440,7 +440,7 @@ static void test_single(const std::vector<std::string>& filePaths, const std::st
 }
 int digit_main(int argc, char* argv[])
 {
-	const std::string model_file = "../../res/model/digit_conv.model";
+	const std::string model_file = "../../res/model/digit_conv_crypted.model";
 #if 1
 	const std::string digit_train_images_dir = R"(D:\workspace\SampleGenetator\SampleGenetator\images\train\)";
 	train(digit_train_images_dir, model_file);
