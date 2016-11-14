@@ -273,11 +273,11 @@ static void train(const std::string& digit_train_images_dir,
 	EasyCNN::logCritical("load training data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
 
 	float learningRate = 0.1f;
-	const float decayRate = 0.002f;
-	const float minLearningRate = 0.0001f;
+	const float decayRate = 0.001f;
+	const float minLearningRate = 0.00001f;
 	const size_t testAfterBatches = 200;
-	const size_t maxBatches = 10000000;
-	const size_t max_epoch = 4;
+	const size_t maxBatches = 100000000;
+	const size_t max_epoch = 5;
 	const size_t batch = 16;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;
@@ -325,6 +325,10 @@ static void train(const std::string& digit_train_images_dir,
 		}
 		const float accuracy = test_batch(network,128,validate_images, validate_labels);
 		EasyCNN::logCritical("epoch[%d] accuracy : %.4f%%", epochIdx++, accuracy*100.0f);
+		if (accuracy >= 0.99)
+		{
+			break;
+		}
 	}
 	const float accuracy = test_batch(network, 128, validate_images, validate_labels);
 	EasyCNN::logCritical("final accuracy : %.4f%%",accuracy*100.0f);
@@ -383,7 +387,7 @@ static std::shared_ptr<EasyCNN::DataBucket> loadImage(const std::vector<std::str
 		cv::Mat normalisedImg;
 		cv::resize(srcGrayImg, normalisedImg, cv::Size(width, height));
 		cv::Mat binaryImg;
-		cv::threshold(normalisedImg, binaryImg, 127, 255, CV_THRESH_BINARY);
+		cv::threshold(normalisedImg, binaryImg, 127, 255, CV_THRESH_BINARY_INV);
 
 		//image data
 		float* inputData = result->getData().get() + i*sizePerImage;
@@ -440,7 +444,7 @@ static void test_single(const std::vector<std::string>& filePaths, const std::st
 }
 int digit_main(int argc, char* argv[])
 {
-	const std::string model_file = "../../res/model/digit_conv_crypted.model";
+	const std::string model_file = "../../res/model/digit_conv.model";
 #if 1
 	const std::string digit_train_images_dir = R"(D:\workspace\SampleGenetator\SampleGenetator\images\train\)";
 	train(digit_train_images_dir, model_file);

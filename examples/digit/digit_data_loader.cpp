@@ -34,7 +34,8 @@ bool load_digit_images(const std::string& dir_path, std::vector<image_t>& images
 	for (uint32_t i = 0; i < all_files.size(); i++)
 	{
 		const std::string& file_path = all_files[i];
-		const cv::Mat srcImg = cv::imread(file_path, 0);
+		cv::Mat srcImg = cv::imread(file_path, 0);
+		srcImg = 255 - srcImg;
 		image_t image;
 		image.channels = 1;
 		image.width = srcImg.cols;
