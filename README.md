@@ -3,6 +3,8 @@ Easy convolution neural network framework.
  
 small , clean , easy to understand !
 
+[blog about EasyCNN in Chinese.](http://hongbomin.com/2016/11/12/easycnn-design-history/)
+
 ## Features
 * All in one : without any dependency,pure c++ implemented.
 * Basic layer : data layer,convolution layer,pooling layer,full connect layer,softmax layer,activation layers(sigmod,tanh,RELU)
