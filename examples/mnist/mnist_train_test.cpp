@@ -386,8 +386,8 @@ static std::shared_ptr<EasyCNN::DataBucket> loadImage(const std::vector<std::pai
 {
 	const int number = samples.size();
 	const int channel = 1;
-	const int width = 20;
-	const int height = 20;
+	const int width = 28;
+	const int height = 28;
 	std::shared_ptr<EasyCNN::DataBucket> result(new EasyCNN::DataBucket(EasyCNN::DataSize(number, channel, width, height)));
 	const size_t sizePerImage = channel*width*height;
 	const float scaleRate = 1.0f / 255.0f;
@@ -472,7 +472,7 @@ static std::vector<std::pair<int, cv::Mat>> export_random_mnist_image(const std:
 int mnist_main(int argc, char* argv[])
 {
 	const std::string model_file = "../../res/model/mnist_mlp.model";
-#if 1
+#if 0
 	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";
 	const std::string mnist_train_labels_file = "../../res/mnist_data/train-labels.idx1-ubyte";
 	train(mnist_train_images_file, mnist_train_labels_file, model_file);
