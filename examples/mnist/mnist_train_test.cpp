@@ -152,6 +152,7 @@ static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,co
 	network.setPhase(EasyCNN::Phase::Train);
 	network.setInputSize(EasyCNN::DataSize(batch, channels, width, height));
 	network.setLossFunctor(std::make_shared<EasyCNN::CrossEntropyFunctor>());
+	network.setOptimizer(std::make_shared<EasyCNN::SGD>(0.01f));
 	//input data layer 0
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
@@ -197,6 +198,7 @@ static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, c
 	network.setPhase(EasyCNN::Phase::Train);
 	network.setInputSize(EasyCNN::DataSize(batch, channels, width, height));
 	network.setLossFunctor(std::make_shared<EasyCNN::MSEFunctor>());
+	network.setOptimizer(std::make_shared<EasyCNN::SGDWithMomentum>(0.01f,0.9f));
 	//input data layer
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
@@ -277,7 +279,7 @@ static void train(const std::string& mnist_train_images_file,
 	EasyCNN::logCritical("load training data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
 
 	float learningRate = 0.1f;
-	const float decayRate = 0.001f;
+	const float decayRate = 0.2f;
 	const float minLearningRate = 0.001f;
 	const size_t testAfterBatches = 200;
 	const size_t maxBatches = 10000;
@@ -291,7 +293,8 @@ static void train(const std::string& mnist_train_images_file,
 	EasyCNN::logCritical("channels:%d , width:%d , height:%d", channels, width, height);
 
 	EasyCNN::logCritical("construct network begin...");
-	EasyCNN::NetWork network(buildConvNet(batch, channels, width, height));
+	EasyCNN::NetWork network(buildMLPNet(batch, channels, width, height));
+	network.setLearningRate(learningRate);
 	EasyCNN::logCritical("construct network done.");
 
 	//train
@@ -301,6 +304,8 @@ static void train(const std::string& mnist_train_images_file,
 	size_t epochIdx = 0;
 	while (epochIdx < max_epoch)
 	{
+		//before epoch start, shuffle all train data first
+		shuffle_data(images, labels);
 		size_t batchIdx = 0;
 		while (true)
 		{
@@ -308,11 +313,9 @@ static void train(const std::string& mnist_train_images_file,
 			{
 				break;
 			}
-			const float loss = network.trainBatch(inputDataBucket,labelDataBucket, learningRate);
+			const float loss = network.trainBatch(inputDataBucket,labelDataBucket);
 			if (batchIdx > 0 && batchIdx % testAfterBatches == 0)
 			{
-				learningRate -= decayRate;
-				learningRate = std::max(learningRate, minLearningRate);
 				const float accuracy = test(network,128,validate_images, validate_labels);
 				EasyCNN::logCritical("sample : %d/%d , learningRate : %f , loss : %f , accuracy : %.4f%%", 
 					batchIdx*batch, train_images.size(), learningRate, loss, accuracy*100.0f);
@@ -326,8 +329,11 @@ static void train(const std::string& mnist_train_images_file,
 		if (batchIdx >= maxBatches)
 		{
 			break;
-		}
+		}		
 		const float accuracy = test(network,128,validate_images, validate_labels);
+		//update learning rate
+		learningRate = std::max(learningRate*decayRate, minLearningRate);
+		network.setLearningRate(learningRate);
 		EasyCNN::logCritical("epoch[%d] accuracy : %.4f%%", epochIdx++, accuracy*100.0f);
 	}
 	const float accuracy = test(network, 128, validate_images, validate_labels);
@@ -376,9 +382,9 @@ static void test(const std::string& mnist_test_images_file,
 	EasyCNN::logCritical("finished test.");
 }
 
-static std::shared_ptr<EasyCNN::DataBucket> loadImage(const std::vector<std::string>& filePaths)
+static std::shared_ptr<EasyCNN::DataBucket> loadImage(const std::vector<std::pair<int, cv::Mat>>& samples)
 {
-	const int number = filePaths.size();
+	const int number = samples.size();
 	const int channel = 1;
 	const int width = 20;
 	const int height = 20;
@@ -387,11 +393,11 @@ static std::shared_ptr<EasyCNN::DataBucket> loadImage(const std::vector<std::str
 	const float scaleRate = 1.0f / 255.0f;
 	for (size_t i = 0; i < (size_t)number; i++)
 	{
-		const cv::Mat srcGrayImg = cv::imread(filePaths[i], cv::IMREAD_GRAYSCALE);
+		const cv::Mat srcGrayImg = samples[i].second;
 		cv::Mat normalisedImg;
 		cv::resize(srcGrayImg, normalisedImg, cv::Size(width, height));
 		cv::Mat binaryImg;
-		cv::threshold(normalisedImg, binaryImg, 127, 255, CV_THRESH_BINARY_INV);
+		cv::threshold(normalisedImg, binaryImg, 127, 255, CV_THRESH_BINARY);
 
 		//image data
 		float* inputData = result->getData().get() + i*sizePerImage;
@@ -403,7 +409,7 @@ static std::shared_ptr<EasyCNN::DataBucket> loadImage(const std::vector<std::str
 	}
 	return result;
 }
-static void test_single(const std::vector<std::string>& filePaths, const std::string& modelFilePath)
+static void test_single(const std::vector<std::pair<int, cv::Mat>>& samples, const std::string& modelFilePath)
 {
 	bool success = false;
 
@@ -418,26 +424,55 @@ static void test_single(const std::vector<std::string>& filePaths, const std::st
 	//train
 	EasyCNN::logCritical("begin test...");
 
-	const std::shared_ptr<EasyCNN::DataBucket> inputDataBucket = loadImage(filePaths);
+	const std::shared_ptr<EasyCNN::DataBucket> inputDataBucket = loadImage(samples);
 	const std::shared_ptr<EasyCNN::DataBucket> probDataBucket = network.testBatch(inputDataBucket);
 	const size_t labelSize = probDataBucket->getSize()._3DSize();
 	const float* probData = probDataBucket->getData().get();
-	for (size_t j = 0; j < filePaths.size(); j++)
+	for (size_t i = 0; i < samples.size(); i++)
 	{
-		const uint8_t testProb = getMaxIdxInArray(probData + j*labelSize, probData + (j + 1) * labelSize);
+		const uint8_t testProb = getMaxIdxInArray(probData + i*labelSize, probData + (i + 1) * labelSize);
 		EasyCNN::logCritical("label : %d",testProb);
 
-		const cv::Mat srcGrayImg = cv::imread(filePaths[j], cv::IMREAD_GRAYSCALE);
+		const cv::Mat srcGrayImg = samples[i].second;
 		cv::destroyAllWindows();
 		cv::imshow("src", srcGrayImg);
 		cv::waitKey(0);
 	}
 	EasyCNN::logCritical("finished test.");
 }
+static cv::Mat image_to_cv(const image_t& img)
+{
+	assert(img.channels == 1);
+	cv::Mat result(img.height, img.width,CV_8UC1,(void*)(&img.data[0]),img.width);
+	return result.clone();
+}
+static std::vector<std::pair<int, cv::Mat>> export_random_mnist_image(const std::string& mnist_test_images_file,
+	const std::string& mnist_test_labels_file, 
+	const int test_size)
+{
+	std::vector<std::pair<int, cv::Mat>> result;
+	bool success = true;
+	std::vector<image_t> images;
+	success = load_mnist_images(mnist_test_images_file, images);
+	assert(success);
+	std::vector<label_t> labels;
+	success = load_mnist_labels(mnist_test_labels_file, labels);
+	assert(success);
+	std::default_random_engine generator;
+	std::uniform_int_distribution<int> dis(0, images.size());
+	for (int i = 0; i < test_size;i++)
+	{
+		const int idx = dis(generator);
+		const int label = labels[idx].data;
+		const cv::Mat image = image_to_cv(images[idx]);
+		result.push_back(std::make_pair(label, image));
+	}
+	return result;
+}
 int mnist_main(int argc, char* argv[])
 {
-	const std::string model_file = "../../res/model/mnist_conv.model";
-#if 0
+	const std::string model_file = "../../res/model/mnist_mlp.model";
+#if 1
 	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";
 	const std::string mnist_train_labels_file = "../../res/mnist_data/train-labels.idx1-ubyte";
 	train(mnist_train_images_file, mnist_train_labels_file, model_file);
@@ -447,8 +482,11 @@ int mnist_main(int argc, char* argv[])
 	const std::string mnist_test_images_file = "../../res/mnist_data/t10k-images.idx3-ubyte";
 	const std::string mnist_test_labels_file = "../../res/mnist_data/t10k-labels.idx1-ubyte";
 	test(mnist_test_images_file, mnist_test_labels_file, model_file);
+#else
+	const std::string mnist_test_images_file = "../../res/mnist_data/t10k-images.idx3-ubyte";
+	const std::string mnist_test_labels_file = "../../res/mnist_data/t10k-labels.idx1-ubyte";
+	std::vector<std::pair<int, cv::Mat>> samples = export_random_mnist_image(mnist_test_images_file, mnist_test_labels_file, 10);
+	test_single(samples, model_file);
 #endif
-
-	test_single(std::vector<std::string>{"d:/0.png", "d:/1.png", "d:/2.png"}, model_file);
 	return 0;
 }

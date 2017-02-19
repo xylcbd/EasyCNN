@@ -7,5 +7,5 @@ extern int digit_main(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
-	return digit_main(argc, argv);
+	return mnist_main(argc, argv);
 }

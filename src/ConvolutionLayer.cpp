@@ -34,7 +34,7 @@ std::string EasyCNN::ConvolutionLayer::serializeToString() const
 		<< widthStep << spliter << heightStep << spliter << enabledBias << spliter;
 	//weight
 	const auto kernel = kernelData->getData().get();
-	for (size_t i = 0; i < kernelSize._4DSize();i++)
+	for (size_t i = 0; i < kernelSize.totalSize();i++)
 	{
 		ss << kernel[i] << spliter;
 	}
@@ -43,7 +43,7 @@ std::string EasyCNN::ConvolutionLayer::serializeToString() const
 	{
 		const auto bias = biasData->getData().get();
 		const auto biasSize = biasData->getSize();
-		for (size_t i = 0; i < biasSize._4DSize(); i++)
+		for (size_t i = 0; i < biasSize.totalSize(); i++)
 		{
 			ss << bias[i] << spliter;
 		}
@@ -62,7 +62,7 @@ void EasyCNN::ConvolutionLayer::serializeFromString(const std::string content)
 	solveInnerParams();
 	//weight
 	auto kernel = kernelData->getData().get();
-	for (size_t i = 0; i < kernelSize._4DSize(); i++)
+	for (size_t i = 0; i < kernelSize.totalSize(); i++)
 	{
 		ss >> kernel[i];
 	}
@@ -71,7 +71,7 @@ void EasyCNN::ConvolutionLayer::serializeFromString(const std::string content)
 	{
 		const auto bias = biasData->getData().get();
 		const auto biasSize = biasData->getSize();
-		for (size_t i = 0; i < biasSize._4DSize(); i++)
+		for (size_t i = 0; i < biasSize.totalSize(); i++)
 		{
 			ss >> bias[i];
 		}
@@ -99,16 +99,34 @@ void EasyCNN::ConvolutionLayer::solveInnerParams()
 	if (kernelData.get() == nullptr)
 	{
 		kernelData.reset(new ParamBucket(kernelSize));
-		normal_distribution_init(kernelData->getData().get(), kernelData->getSize()._4DSize(), 0.0f, 0.1f);
+		normal_distribution_init(kernelData->getData().get(), kernelData->getSize().totalSize(), 0.0f, 0.1f);
+	}
+	if (kernelDiffData.get() == nullptr)
+	{
+		kernelDiffData.reset(new ParamBucket(kernelData->getSize()));
+		const_distribution_init(kernelDiffData->getData().get(), kernelDiffData->getSize().totalSize(), 0.0f);
 	}
 	if (enabledBias)
 	{
 		if (biasData.get() == nullptr)
 		{
 			biasData.reset(new ParamBucket(ParamSize(kernelSize.number, 1, 1, 1)));
-			const_distribution_init(biasData->getData().get(), biasData->getSize()._4DSize(), 0.0f);
+			const_distribution_init(biasData->getData().get(), biasData->getSize().totalSize(), 0.0f);
+		}
+		if (biasDiffData.get() == nullptr)
+		{
+			biasDiffData.reset(new ParamBucket(biasData->getSize()));
+			const_distribution_init(biasDiffData->getData().get(), biasDiffData->getSize().totalSize(), 0.0f);
 		}
 	}
+	//parmas
+	params.clear();
+	params.push_back(kernelData);
+	params.push_back(biasData);
+	//diffs
+	diff.clear();
+	diff.push_back(kernelDiffData);
+	diff.push_back(biasDiffData);
 }
 void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
@@ -250,10 +268,9 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 
 	//////////////////////////////////////////////////////////////////////////
 	//update this layer's param
-	const ParamSize kernelDiffSize(kernelSize);
-	std::shared_ptr<ParamBucket> kernelDiffBucket(std::make_shared<ParamBucket>(kernelDiffSize));
-	kernelDiffBucket->fillData(0.0f);
-	float* kernelDiff = kernelDiffBucket->getData().get();
+	const ParamSize kernelDiffSize(kernelSize);	
+	kernelDiffData->fillData(0.0f);
+	float* kernelDiff = kernelDiffData->getData().get();
 	//update kernel
 	for (size_t pn = 0; pn < prevDataSize.number; pn++)
 	{
@@ -283,18 +300,17 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 			}
 		}
 	}
-	//apply change
-	for (size_t kernelIdx = 0; kernelIdx < kernelSize._4DSize();kernelIdx++)
-	{
-		kernel[kernelIdx] -= getLearningRate()*kernelDiff[kernelIdx] / nextDataSize.number;
+	//div by batch size
+	for (size_t kernelIdx = 0; kernelIdx < kernelSize.totalSize();kernelIdx++)
+	{		
+		kernelDiff[kernelIdx] /= nextDataSize.number;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 	//update bias
 	const ParamSize biasDiffSize(biasSize);
-	std::shared_ptr<ParamBucket> biasDiffBucket(std::make_shared<ParamBucket>(biasDiffSize));
-	biasDiffBucket->fillData(0.0f);
-	float* biasDiff = biasDiffBucket->getData().get();
+	biasDiffData->fillData(0.0f);
+	float* biasDiff = biasDiffData->getData().get();
 	for (size_t pn = 0; pn < prevDataSize.number; pn++)
 	{
 		for (size_t nc = 0; nc < nextDiffSize.channels; nc++)
@@ -311,9 +327,9 @@ void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 		}
 	}
 	//apply change
-	for (size_t biasIdx = 0; biasIdx < biasSize._4DSize(); biasIdx++)
+	for (size_t biasIdx = 0; biasIdx < biasSize.totalSize(); biasIdx++)
 	{
-		bias[biasIdx] -= getLearningRate()*biasDiff[biasIdx] / nextDataSize.number;
+		biasDiff[biasIdx] /= nextDataSize.number;
 	}
 
 	//////////////////////////////////////////////////////////////////////////

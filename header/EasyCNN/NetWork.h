@@ -4,6 +4,7 @@
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/Layer.h"
 #include "EasyCNN/LossFunction.h"
+#include "EasyCNN/Optimizer.h"
 
 namespace EasyCNN
 {
@@ -22,9 +23,11 @@ namespace EasyCNN
 		//train only!
 		void setInputSize(const DataSize size);
 		void setLossFunctor(std::shared_ptr<LossFunctor> lossFunctor);
+		void setOptimizer(std::shared_ptr<Optimizer> optimizer);
+		void setLearningRate(const float lr);
 		void addayer(std::shared_ptr<Layer> layer);
 		float trainBatch(const std::shared_ptr<DataBucket> inputDataBucket,
-			const std::shared_ptr<DataBucket> labelDataBucket, float learningRate);
+			const std::shared_ptr<DataBucket> labelDataBucket);
 		bool saveModel(const std::string& modelFile);
 	private:
 		std::string encrypt(const std::string& content);
@@ -32,7 +35,7 @@ namespace EasyCNN
 	private:
 		//common
 		std::shared_ptr<EasyCNN::DataBucket> forward(const std::shared_ptr<DataBucket> inputDataBucket);
-		float backward(const std::shared_ptr<DataBucket> labelDataBucket, float learningRate);
+		float backward(const std::shared_ptr<DataBucket> labelDataBucket);
 		std::string serializeToString() const;
 		std::vector<std::shared_ptr<EasyCNN::Layer>> serializeFromString(const std::string content);
 		std::shared_ptr<EasyCNN::Layer> createLayerByType(const std::string layerType);
@@ -41,5 +44,6 @@ namespace EasyCNN
 		std::vector<std::shared_ptr<Layer>> layers;
 		std::vector<std::shared_ptr<DataBucket>> dataBuckets;
 		std::shared_ptr<LossFunctor> lossFunctor;
+		std::shared_ptr<Optimizer> optimizer;
 	};
 }

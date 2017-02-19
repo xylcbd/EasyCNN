@@ -1,5 +1,4 @@
 #pragma once
-#include <iostream>
 #include <memory>
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/EasyLogger.h"
@@ -13,6 +12,7 @@ namespace EasyCNN
 		DataSize() = default;
 		DataSize(const size_t _number, const size_t _channels, const size_t _width, const size_t _height)
 			:number(_number),channels(_channels), width(_width), height(_height){}
+		inline size_t totalSize() const { return _4DSize(); }
 		inline size_t _4DSize() const { return number*channels*width*height; }
 		inline size_t _3DSize() const { return channels*width*height; }
 		inline size_t _2DSize() const { return width*height; }

@@ -9,7 +9,7 @@ small, clean, easy to understand!
 * All in one: without any dependency, pure c++ implemented.
 * Basic layer: data layer, convolution layer, pooling layer, full connect layer, softmax layer, activation layers(sigmod, tanh, RELU)
 * Loss function: Cross Entropy, MSE.
-* Optimize method: SGD.
+* Optimize method: SGD, SGDWithMomentum.
 
 ## Examples
 * mnist demo, with ConvNet and MLP net,  [examples/mnist/mnist_train_test.cpp](./examples/mnist/mnist_train_test.cpp "mnist_train_test.cpp")  
@@ -19,7 +19,7 @@ small, clean, easy to understand!
 * ~~fix train error when batch > 1 issue.~~
 * ~~add load & save model function.~~
 * add more layer, such as batch normalization layer, dropout layer, etc.
-* add weight regular, gradient momentum.
+* add weight regular.
 * port to other platforms, such as linux, mac, android, iOS, etc.
 * optimize network train/test speed, use cuBLAS/OpenBLAS etc.
 * add more optimize method.

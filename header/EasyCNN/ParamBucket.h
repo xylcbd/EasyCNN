@@ -3,9 +3,11 @@
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/EasyLogger.h"
 #include "EasyCNN/EasyAssert.h"
+#include "EasyCNN/DataBucket.h"
 
 namespace EasyCNN
 {
+	/*
 	struct ParamSize
 	{
 	public:
@@ -42,4 +44,7 @@ namespace EasyCNN
 		ParamSize size;
 		std::shared_ptr<float> data;
 	};
+	*/
+	using ParamSize = DataSize;
+	using ParamBucket = DataBucket;
 }

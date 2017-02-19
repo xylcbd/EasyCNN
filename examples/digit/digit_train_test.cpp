@@ -197,6 +197,7 @@ static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, c
 	network.setPhase(EasyCNN::Phase::Train);
 	network.setInputSize(EasyCNN::DataSize(batch, channels, width, height));
 	network.setLossFunctor(std::make_shared<EasyCNN::MSEFunctor>());
+	network.setOptimizer(std::make_shared<EasyCNN::SGDWithMomentum>(0.01f, 0.9f));
 	//input data layer
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
@@ -273,7 +274,7 @@ static void train(const std::string& digit_train_images_dir,
 	EasyCNN::logCritical("load training data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
 
 	float learningRate = 0.1f;
-	const float decayRate = 0.001f;
+	const float decayRate = 0.2f;
 	const float minLearningRate = 0.00001f;
 	const size_t testAfterBatches = 200;
 	const size_t maxBatches = 100000000;
@@ -288,6 +289,7 @@ static void train(const std::string& digit_train_images_dir,
 
 	EasyCNN::logCritical("construct network begin...");
 	EasyCNN::NetWork network(buildConvNet(batch, channels, width, height));
+	network.setLearningRate(learningRate);
 	EasyCNN::logCritical("construct network done.");
 
 	//train
@@ -297,6 +299,8 @@ static void train(const std::string& digit_train_images_dir,
 	size_t epochIdx = 0;
 	while (epochIdx < max_epoch)
 	{
+		//before epoch start, shuffle all train data first
+		shuffle_data(images, labels);
 		size_t batchIdx = 0;
 		while (true)
 		{
@@ -304,11 +308,9 @@ static void train(const std::string& digit_train_images_dir,
 			{
 				break;
 			}
-			const float loss = network.trainBatch(inputDataBucket,labelDataBucket, learningRate);
+			const float loss = network.trainBatch(inputDataBucket,labelDataBucket);
 			if (batchIdx > 0 && batchIdx % testAfterBatches == 0)
-			{
-				learningRate -= decayRate;
-				learningRate = std::max(learningRate, minLearningRate);
+			{				
 				const float accuracy = test_batch(network,128,validate_images, validate_labels);
 				EasyCNN::logCritical("sample : %d/%d , learningRate : %f , loss : %f , accuracy : %.4f%%", 
 					batchIdx*batch, train_images.size(), learningRate, loss, accuracy*100.0f);
@@ -325,6 +327,10 @@ static void train(const std::string& digit_train_images_dir,
 		}
 		const float accuracy = test_batch(network,128,validate_images, validate_labels);
 		EasyCNN::logCritical("epoch[%d] accuracy : %.4f%%", epochIdx++, accuracy*100.0f);
+		//update learning rate
+		learningRate *= decayRate;
+		learningRate = std::max(learningRate, minLearningRate);
+		network.setLearningRate(learningRate);
 		if (accuracy >= 0.99)
 		{
 			break;

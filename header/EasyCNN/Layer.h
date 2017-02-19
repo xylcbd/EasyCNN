@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <string>
+#include <vector>
 #include "EasyCNN/Configure.h"
 #include "EasyCNN/DataBucket.h"
 #include "EasyCNN/ParamBucket.h"
@@ -29,6 +30,10 @@ namespace EasyCNN
 		//learning rate
 		inline void setLearningRate(const float learningRate){ this->learningRate = learningRate; }
 		inline float getLearningRate() const{ return learningRate; }	
+		//diff
+		inline std::vector<std::shared_ptr<ParamBucket>> getDiffData() const { return diff; }
+		//params
+		inline std::vector<std::shared_ptr<ParamBucket>> getParamData() const { return params; }
 		//size
 		inline void setInputBucketSize(const DataSize size){ inputSize = size; }
 		inline DataSize getInputBucketSize() const{ return inputSize; }
@@ -39,7 +44,11 @@ namespace EasyCNN
 		//data flow		
 		virtual void forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket) = 0;
 		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket) = 0;
-	private:
+	protected:
+		//subclass must add all diffs to diff
+		std::vector<std::shared_ptr<DataBucket>> diff;
+		//subclass must add all weight to params
+		std::vector<std::shared_ptr<ParamBucket>> params;
 		Phase phase = Phase::Train;
 		DataSize inputSize;
 		DataSize outputSize;

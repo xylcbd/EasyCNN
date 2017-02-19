@@ -81,7 +81,7 @@ void EasyCNN::SigmodLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, 
 		}
 	}
 	//multiply next diff
-	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize(); i++)
+	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
 	{
 		prevDiff[i] *= nextDiff[i];
 	}
@@ -173,7 +173,7 @@ void EasyCNN::TanhLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, co
 		}
 	}
 	//multiply next diff
-	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize(); i++)
+	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
 	{
 		prevDiff[i] *= nextDiff[i];
 	}
@@ -263,7 +263,7 @@ void EasyCNN::ReluLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, co
 		}
 	}
 	//multiply next diff
-	for (size_t i = 0; i < prevDiffBucket->getSize()._4DSize(); i++)
+	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
 	{
 		prevDiff[i] *= nextDiff[i];
 	}

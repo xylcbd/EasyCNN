@@ -145,7 +145,7 @@ std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::forward(const std::shared
 	logVerbose("NetWork forward end.");
 	return dataBuckets[dataBuckets.size() - 1];
 }
-float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket, const float learningRate)
+float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket)
 {
 	logVerbose("NetWork backward begin.");
 	easyAssert(layers.size() > 1, "layer count is less than 2.");
@@ -164,11 +164,20 @@ float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labe
 	//other layer backward
 	for (int i = (int)(layers.size()) - 1; i >= 0; i--)
 	{
-		logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());
-		layers[i]->setLearningRate(learningRate);
+		logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());		
 		layers[i]->backward(dataBuckets[i], dataBuckets[i + 1], nextDiffBucket);
 		logVerbose("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
 	}
+
+
+	//update parameters
+	for (int i = (int)(layers.size()) - 1; i >= 0; i--)
+	{
+		logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());
+		optimizer->update(layers[i]->getParamData(), layers[i]->getDiffData());
+		logVerbose("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
+	}
+
 	logVerbose("NetWork backward end.");
 
 	return loss;
@@ -227,6 +236,16 @@ void EasyCNN::NetWork::setLossFunctor(std::shared_ptr<LossFunctor> lossFunctor)
 	this->lossFunctor = lossFunctor;
 	logVerbose("NetWork setInputSize end.");
 }
+void EasyCNN::NetWork::setOptimizer(std::shared_ptr<Optimizer> optimizer)
+{
+	logVerbose("NetWork setOptimizer begin.");
+	this->optimizer = optimizer;
+	logVerbose("NetWork setOptimizer end.");
+}
+void EasyCNN::NetWork::setLearningRate(const float lr)
+{
+	this->optimizer->setLearningRate(lr);
+}
 void EasyCNN::NetWork::addayer(std::shared_ptr<Layer> layer)
 {
 	const auto layer_type = layer->getLayerType();
@@ -247,12 +266,12 @@ void EasyCNN::NetWork::addayer(std::shared_ptr<Layer> layer)
 	logVerbose("NetWork addayer end. add data bucket done.");
 }
 float EasyCNN::NetWork::trainBatch(const std::shared_ptr<DataBucket> inputDataBucket,
-	const std::shared_ptr<DataBucket> labelDataBucket, float learningRate)
+	const std::shared_ptr<DataBucket> labelDataBucket)
 {
 	easyAssert(phase == Phase::Train, "phase must be train!");
 	logVerbose("NetWork trainBatch begin.");
 	forward(inputDataBucket);
-	const float loss = backward(labelDataBucket, learningRate);
+	const float loss = backward(labelDataBucket);
 	logVerbose("NetWork trainBatch end.");
 	return loss;
 }
@@ -277,7 +296,7 @@ bool EasyCNN::NetWork::saveModel(const std::string& modelFile)
 std::string EasyCNN::NetWork::encrypt(const std::string& content)
 {
 	std::string message = content;
-	for (int i = 0; i < message.size(); i++)
+	for (size_t i = 0; i < message.size(); i++)
 	{
 		message[i] -= 15;
 	}
@@ -287,7 +306,7 @@ std::string EasyCNN::NetWork::decrypt(const std::string& content)
 {
 	std::string message = content;
 	message = message.substr(0, message.size() - 1);
-	for (int i = 0; i < message.size(); i++)
+	for (size_t i = 0; i < message.size(); i++)
 	{
 		message[i] += 15;
 	}

@@ -36,7 +36,7 @@ std::string EasyCNN::FullconnectLayer::serializeToString() const
 	//weight
 	const auto weight = weightsData->getData().get();
 	const auto weightSize = weightsData->getSize();
-	for (size_t i = 0; i < weightSize._4DSize(); i++)
+	for (size_t i = 0; i < weightSize.totalSize(); i++)
 	{
 		ss << weight[i] << spliter;
 	}
@@ -45,7 +45,7 @@ std::string EasyCNN::FullconnectLayer::serializeToString() const
 	{
 		const auto bias = biasData->getData().get();
 		const auto biasSize = biasData->getSize();
-		for (size_t i = 0; i < biasSize._4DSize(); i++)
+		for (size_t i = 0; i < biasSize.totalSize(); i++)
 		{
 			ss << bias[i] << spliter;
 		}
@@ -71,7 +71,7 @@ void EasyCNN::FullconnectLayer::serializeFromString(const std::string content)
 	//weight
 	const auto weight = weightsData->getData().get();
 	const auto weightSize = weightsData->getSize();
-	for (size_t i = 0; i < weightSize._4DSize(); i++)
+	for (size_t i = 0; i < weightSize.totalSize(); i++)
 	{
 		ss >> weight[i];
 	}
@@ -80,7 +80,7 @@ void EasyCNN::FullconnectLayer::serializeFromString(const std::string content)
 	{
 		const auto bias = biasData->getData().get();
 		const auto biasSize = biasData->getSize();
-		for (size_t i = 0; i < biasSize._4DSize(); i++)
+		for (size_t i = 0; i < biasSize.totalSize(); i++)
 		{
 			ss >> bias[i];
 		}
@@ -97,16 +97,34 @@ void EasyCNN::FullconnectLayer::solveInnerParams()
 	if (weightsData.get() == nullptr)
 	{
 		weightsData.reset(new ParamBucket(ParamSize(1, inputSize._3DSize()*outputSize._3DSize(), 1, 1)));
-		normal_distribution_init(weightsData->getData().get(), weightsData->getSize()._4DSize(), 0.0f, 0.1f);
+		normal_distribution_init(weightsData->getData().get(), weightsData->getSize().totalSize(), 0.0f, 0.1f);
+	}
+	if (weightsDiffData.get() == nullptr)
+	{
+		weightsDiffData.reset(new ParamBucket(weightsData->getSize()));
+		const_distribution_init(weightsDiffData->getData().get(), weightsDiffData->getSize().totalSize(), 0.0f);
 	}
 	if (enabledBias)
 	{
 		if (biasData.get() == nullptr)
 		{
 			biasData.reset(new ParamBucket(ParamSize(1, outputSize.channels, 1, 1)));
-			const_distribution_init(biasData->getData().get(), biasData->getSize()._4DSize(), 0.0f);
+			const_distribution_init(biasData->getData().get(), biasData->getSize().totalSize(), 0.0f);
+		}
+		if (biasDiffData.get() == nullptr)
+		{
+			biasDiffData.reset(new ParamBucket(biasData->getSize()));
+			const_distribution_init(biasDiffData->getData().get(), biasDiffData->getSize().totalSize(), 0.0f);
 		}
 	}
+	//parmas
+	params.clear();
+	params.push_back(weightsData);
+	params.push_back(biasData);
+	//diffs
+	diff.clear();
+	diff.push_back(weightsDiffData);
+	diff.push_back(biasDiffData);
 }
 void EasyCNN::FullconnectLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
 {
@@ -158,10 +176,10 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 	float* weight = weightsData->getData().get();
 	float* bias = enabledBias ? biasData->getData().get() : nullptr;
 	easyAssert(nextDataSize.width == 1 && nextDataSize.height == 1, "use channel only!");
-	easyAssert(weightSize._4DSize() == prevDataSize._3DSize() * nextDataSize._3DSize(), "weight size is invalidate!");
+	easyAssert(weightSize.totalSize() == prevDataSize._3DSize() * nextDataSize._3DSize(), "weight size is invalidate!");
 	if (enabledBias)
 	{
-		easyAssert(biasSize._4DSize() == nextDataSize._3DSize(), "bias size is invalidate!");
+		easyAssert(biasSize.totalSize() == nextDataSize._3DSize(), "bias size is invalidate!");
 	}
 
 	//////////////////////////////////////////////////////////////////////////
@@ -195,9 +213,8 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 	//update this layer's param
 	//update weight
 	//get weight diff
-	std::shared_ptr<ParamBucket> weightDiffBucket(std::make_shared<ParamBucket>(weightSize));
-	weightDiffBucket->fillData(0.0f);
-	float* weightDiff = weightDiffBucket->getData().get();
+	weightsDiffData->fillData(0.0f);
+	float* weightDiff = weightsDiffData->getData().get();
 	for (size_t nn = 0; nn < nextDataSize.number; nn++)
 	{
 		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
@@ -211,19 +228,18 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 			}
 		}
 	}
-	//apply change
-	for (size_t weightIdx = 0; weightIdx < weightSize._4DSize(); weightIdx++)
+	//div by batch size
+	for (size_t weightIdx = 0; weightIdx < weightSize.totalSize(); weightIdx++)
 	{
-		weight[weightIdx] -= getLearningRate() * weightDiff[weightIdx] / nextDataSize.number;
+		weightDiff[weightIdx] /= nextDataSize.number;
 	}
 	//////////////////////////////////////////////////////////////////////////
 	//update bias
 	if (enabledBias)
 	{
-		//get bias diff
-		std::shared_ptr<ParamBucket> biasDiffBucket(std::make_shared<ParamBucket>(biasSize));
-		biasDiffBucket->fillData(0.0f);
-		float* biasDiff = biasDiffBucket->getData().get();
+		//get bias diff		
+		biasDiffData->fillData(0.0f);
+		float* biasDiff = biasDiffData->getData().get();
 		for (size_t nn = 0; nn < nextDataSize.number; nn++)
 		{
 			for (size_t biasDiffIdx = 0; biasDiffIdx < biasSize._3DSize(); biasDiffIdx++)
@@ -231,10 +247,10 @@ void EasyCNN::FullconnectLayer::backward(std::shared_ptr<DataBucket> prevDataBuc
 				biasDiff[biasDiffIdx] += 1.0f*nextDiff[nn*biasSize._3DSize() + biasDiffIdx];
 			}
 		}
-		//apply change
-		for (size_t biasDiffIdx = 0; biasDiffIdx < biasSize._4DSize(); biasDiffIdx++)
+		//div by batch size
+		for (size_t biasDiffIdx = 0; biasDiffIdx < biasSize.totalSize(); biasDiffIdx++)
 		{
-			bias[biasDiffIdx] -= getLearningRate() * biasDiff[biasDiffIdx] / nextDataSize.number;
+			biasDiff[biasDiffIdx] /= nextDataSize.number;
 		}
 	}
 

@@ -24,7 +24,9 @@ namespace EasyCNN
 		size_t widthStep = 0;
 		size_t heightStep = 0;
 		std::shared_ptr<ParamBucket> kernelData;
+		std::shared_ptr<ParamBucket> kernelDiffData;
 		bool enabledBias = false;
 		std::shared_ptr<ParamBucket> biasData;
+		std::shared_ptr<ParamBucket> biasDiffData;
 	};
 }
