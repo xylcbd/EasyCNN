@@ -208,13 +208,13 @@ static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,co
 	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 16, 2, 2), 2, 2);
 	network.addayer(_4_pooingLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
-	network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
+	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
 	//full connect layer 5
 	std::shared_ptr<EasyCNN::FullconnectLayer> _5_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
 	_5_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 512, 1, 1),true);
 	network.addayer(_5_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
-	network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
+	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
 	//full connect layer 6
 	std::shared_ptr<EasyCNN::FullconnectLayer> _6_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
 	_6_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, classes, 1, 1), true);
@@ -240,13 +240,13 @@ static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, c
 	_1_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 512, 1, 1),true);
 	network.addayer(_1_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
-	network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
+	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
 	//full connect layer
 	std::shared_ptr<EasyCNN::FullconnectLayer> _2_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
 	_2_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 256, 1, 1),true);
 	network.addayer(_2_fullconnectLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
-	network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
+	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
 	//full connect layer
 	std::shared_ptr<EasyCNN::FullconnectLayer> _3_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
 	_3_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, classes, 1, 1), true);
