@@ -37,6 +37,10 @@ EasyCNN::Phase EasyCNN::NetWork::getPhase() const
 {
 	return phase;
 }
+float EasyCNN::NetWork::getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket, const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket)
+{
+	return lossFunctor->getLoss(labelDataBucket, outputDataBucket);
+}
 std::string EasyCNN::NetWork::serializeToString() const
 {
 	const std::string spliter = " ";
@@ -147,6 +151,7 @@ std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::forward(const std::shared
 }
 float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket)
 {
+	easyAssert(phase == Phase::Train, "phase must be train!");
 	logVerbose("NetWork backward begin.");
 	easyAssert(layers.size() > 1, "layer count is less than 2.");
 	easyAssert(layers[0]->getLayerType() == InputLayer::layerType, "first layer is not input layer.");
@@ -156,7 +161,7 @@ float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labe
 	easyAssert(lastOutputData->getSize() == labelDataBucket->getSize(), "last data bucket's size must be equals with label.");
 
 	//get loss
-	const float loss = lossFunctor->getLoss(labelDataBucket, lastOutputData);
+	const float loss = getLoss(labelDataBucket, lastOutputData);
 
 	//get diff
 	std::shared_ptr<DataBucket> nextDiffBucket = lossFunctor->getDiff(labelDataBucket, lastOutputData);
@@ -216,6 +221,7 @@ bool EasyCNN::NetWork::loadModel(const std::string& modelFile)
 //train phase may use this
 std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::testBatch(const std::shared_ptr<DataBucket> inputDataBucket)
 {
+	setPhase(EasyCNN::Phase::Test);
 	return forward(inputDataBucket);
 }
 
@@ -268,7 +274,7 @@ void EasyCNN::NetWork::addayer(std::shared_ptr<Layer> layer)
 float EasyCNN::NetWork::trainBatch(const std::shared_ptr<DataBucket> inputDataBucket,
 	const std::shared_ptr<DataBucket> labelDataBucket)
 {
-	easyAssert(phase == Phase::Train, "phase must be train!");
+	setPhase(EasyCNN::Phase::Train);
 	logVerbose("NetWork trainBatch begin.");
 	forward(inputDataBucket);
 	const float loss = backward(labelDataBucket);

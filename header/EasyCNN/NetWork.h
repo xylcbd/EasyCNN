@@ -15,8 +15,7 @@ namespace EasyCNN
 		virtual ~NetWork();
 	public:
 		//common
-		void setPhase(Phase phase);
-		Phase getPhase() const;
+		float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket, const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
 		//test only!
 		bool loadModel(const std::string& modelFile);
 		std::shared_ptr<EasyCNN::DataBucket> testBatch(const std::shared_ptr<DataBucket> inputDataBucket);
@@ -30,6 +29,9 @@ namespace EasyCNN
 			const std::shared_ptr<DataBucket> labelDataBucket);
 		bool saveModel(const std::string& modelFile);
 	private:
+		//common
+		void setPhase(Phase phase);
+		Phase getPhase() const;
 		std::string encrypt(const std::string& content);
 		std::string decrypt(const std::string& content);
 	private:

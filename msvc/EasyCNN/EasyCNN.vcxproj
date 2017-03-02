@@ -83,10 +83,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\header\EasyCNN\ActivationLayer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\BatchNormalizationLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\CommonTools.h" />
     <ClInclude Include="..\..\header\EasyCNN\Configure.h" />
     <ClInclude Include="..\..\header\EasyCNN\ConvolutionLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\DataBucket.h" />
+    <ClInclude Include="..\..\header\EasyCNN\DropoutLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\EasyAssert.h" />
     <ClInclude Include="..\..\header\EasyCNN\EasyCNN.h" />
     <ClInclude Include="..\..\header\EasyCNN\InputLayer.h" />
@@ -99,6 +101,8 @@
     <ClInclude Include="..\..\header\EasyCNN\ParamBucket.h" />
     <ClInclude Include="..\..\header\EasyCNN\PoolingLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\SoftmaxLayer.h" />
+    <ClCompile Include="..\..\src\BatchNormalizaitonLayer.cpp" />
+    <ClCompile Include="..\..\src\DropoutLayer.cpp" />
     <ClCompile Include="..\..\src\EasyAssert.cpp">
       <FileType>CppHeader</FileType>
     </ClCompile>

@@ -15,5 +15,6 @@
 #include "EasyCNN/PoolingLayer.h"
 #include "EasyCNN/FullconnectLayer.h"
 #include "EasyCNN/SoftmaxLayer.h"
+#include "EasyCNN/DropoutLayer.h"
 //network
 #include "EasyCNN/NetWork.h"
