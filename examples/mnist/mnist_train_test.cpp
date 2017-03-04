@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include <algorithm>
+#include <random>
 #include "EasyCNN/EasyCNN.h"
 #include "mnist_data_loader.h"
 #include <opencv2/opencv.hpp>
@@ -280,6 +281,19 @@ static void shuffle_data(std::vector<image_t>& images, std::vector<label_t>& lab
 	images = tmpImages;
 	labels = tmpLabels;
 }
+
+static float get_base(const float x)
+{
+	for (int i = 0; i >= -10;i--)
+	{
+		const float base = std::pow(10.0f, i)+0.000001f;
+		if (x > base)
+		{
+			return base;
+		}
+	}
+	return 0.0f;
+}
 static void train(const std::string& mnist_train_images_file,
 	const std::string& mnist_train_labels_file,
 	const std::string& modelFilePath)
@@ -315,11 +329,11 @@ static void train(const std::string& mnist_train_images_file,
 
 	float learningRate = 0.1f;
 	const float decayRate = 0.2f;
-	const float minLearningRate = 0.001f;
+	const float minLearningRate = 0.00001f;
 	const size_t testAfterBatches = 200;
 	const size_t maxBatches = 10000;
-	const size_t max_epoch = 4;
-	const size_t batch = 16;
+	const size_t max_epoch = 1;
+	const size_t batch = 64;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;
 	const size_t height = images[0].height;
@@ -328,7 +342,7 @@ static void train(const std::string& mnist_train_images_file,
 	EasyCNN::logCritical("channels:%d , width:%d , height:%d", channels, width, height);
 
 	EasyCNN::logCritical("construct network begin...");
-	EasyCNN::NetWork network(buildMLPNet(batch, channels, width, height));
+	EasyCNN::NetWork network(buildConvNet(batch, channels, width, height));
 	network.setLearningRate(learningRate);
 	EasyCNN::logCritical("construct network done.");
 
@@ -344,7 +358,7 @@ static void train(const std::string& mnist_train_images_file,
 	while (epochIdx < max_epoch)
 	{
 		//before epoch start, shuffle all train data first
-		shuffle_data(images, labels);
+		shuffle_data(train_images, train_labels);
 		size_t batchIdx = 0;
 		while (true)
 		{
@@ -358,6 +372,10 @@ static void train(const std::string& mnist_train_images_file,
 				std::tie(val_accuracy, val_loss) = test(network, 128, validate_images, validate_labels);
 				EasyCNN::logCritical("sample : %d/%d , learningRate : %f , train_loss : %f , val_loss : %f , val_accuracy : %.4f%%", 
 					batchIdx*batch, train_images.size(), learningRate, train_loss / batchIdx, val_loss, val_accuracy*100.0f);
+
+				//update learning rate
+				learningRate = std::max(learningRate - 0.4f*get_base(learningRate), minLearningRate);
+				network.setLearningRate(learningRate);
 			}
 			if (batchIdx >= maxBatches)
 			{
@@ -512,6 +530,8 @@ static std::vector<std::pair<int, cv::Mat>> export_random_mnist_image(const std:
 }
 int mnist_main(int argc, char* argv[])
 {
+	EasyCNN::set_thread_num(4);
+
 	const std::string model_file = "../../res/model/mnist_mlp.model";
 #if 1
 	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";

@@ -87,6 +87,7 @@
     <ClInclude Include="..\..\header\EasyCNN\CommonTools.h" />
     <ClInclude Include="..\..\header\EasyCNN\Configure.h" />
     <ClInclude Include="..\..\header\EasyCNN\ConvolutionLayer.h" />
+    <ClInclude Include="..\..\header\EasyCNN\ThreadPool.h" />
     <ClInclude Include="..\..\header\EasyCNN\DataBucket.h" />
     <ClInclude Include="..\..\header\EasyCNN\DropoutLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\EasyAssert.h" />
@@ -94,6 +95,7 @@
     <ClInclude Include="..\..\header\EasyCNN\InputLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\EasyLogger.h" />
     <ClInclude Include="..\..\header\EasyCNN\LossFunction.h" />
+    <ClInclude Include="..\..\header\EasyCNN\MathFunctions.h" />
     <ClInclude Include="..\..\header\EasyCNN\NetWork.h" />
     <ClInclude Include="..\..\header\EasyCNN\FullconnectLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\Layer.h" />
@@ -102,6 +104,7 @@
     <ClInclude Include="..\..\header\EasyCNN\PoolingLayer.h" />
     <ClInclude Include="..\..\header\EasyCNN\SoftmaxLayer.h" />
     <ClCompile Include="..\..\src\BatchNormalizaitonLayer.cpp" />
+    <ClCompile Include="..\..\src\Configure.cpp" />
     <ClCompile Include="..\..\src\DropoutLayer.cpp" />
     <ClCompile Include="..\..\src\EasyAssert.cpp">
       <FileType>CppHeader</FileType>
@@ -115,6 +118,7 @@
     <ClCompile Include="..\..\src\FullconnectLayer.cpp" />
     <ClCompile Include="..\..\src\InputLayer.cpp" />
     <ClCompile Include="..\..\src\LossFunction.cpp" />
+    <ClCompile Include="..\..\src\MathFunctions.cpp" />
     <ClCompile Include="..\..\src\NetWork.cpp" />
     <ClCompile Include="..\..\src\Optimizer.cpp" />
     <ClCompile Include="..\..\src\PoolingLayer.cpp" />

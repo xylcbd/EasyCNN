@@ -1,274 +1,343 @@
 #include <algorithm>
 #include "EasyCNN/ActivationLayer.h"
+#include "EasyCNN/MathFunctions.h"
 
-EasyCNN::SigmodLayer::SigmodLayer()
+namespace EasyCNN
 {
-
-}
-EasyCNN::SigmodLayer::~SigmodLayer()
-{
-
-}
-DEFINE_LAYER_TYPE(EasyCNN::SigmodLayer, "SigmodLayer");
-std::string EasyCNN::SigmodLayer::getLayerType() const
-{
-	return layerType;
-}
-//f(x)=1/(1+e^(-x))
-static inline float sigmodOperator(const float x)
-{
-	float result = 0;
-	result = 1.0f / (1.0f + std::exp(-1.0f*x));
-	return result;
-}
-//f'(x) = x(1-x)
-static inline float sigmodDfOperator(const float x)
-{
-	return x*(1.0f - x);
-}
-void EasyCNN::SigmodLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
-{
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-
-	const float* prevRawData = prevDataBucket->getData().get();
-	float* nextRawData = nextDataBucket->getData().get();
-	for (size_t nn = 0; nn < nextDataSize.number; nn++)
+	SigmodLayer::SigmodLayer()
 	{
-		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
+
+	}
+	SigmodLayer::~SigmodLayer()
+	{
+
+	}
+	DEFINE_LAYER_TYPE(SigmodLayer, "SigmodLayer");
+	std::string SigmodLayer::getLayerType() const
+	{
+		return layerType;
+	}
+	void SigmodLayer::forward(const std::shared_ptr<DataBucket> prev, std::shared_ptr<DataBucket> next)
+	{
+		const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+
+		const float* prevData = prev->getData().get();
+		float* nextData = next->getData().get();
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || prevSize.totalSize() <= 4 * 1024)
 		{
-			for (size_t nh = 0; nh < nextDataSize.height; nh++)
+			sigmoid(prevData, nextData, nextSize.totalSize());
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			size_t payload_per_thread = prevSize.totalSize() / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
 			{
-				for (size_t nw = 0; nw < nextDataSize.width; nw++)
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, prevSize.totalSize());
+				futures.push_back(thread_pool->enqueue(sigmoid, prevData + start, nextData + start, stop - start));
+				if (stop >= prevSize.totalSize())
 				{
-					const size_t nextDataIdx = nextDataSize.getIndex(nn, nc, nh, nw);
-					nextRawData[nextDataIdx] = sigmodOperator(prevRawData[nextDataIdx]);
+					break;
 				}
 			}
-		}
-	}
-}
-void EasyCNN::SigmodLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
-{
-	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
-	const float* prevData = prevDataBucket->getData().get();
-	const float* nextData = nextDataBucket->getData().get();
-	const float* nextDiff = nextDiffBucket->getData().get();
-	easyAssert(prevDataSize == nextDataSize, "size must be equal!");
-
-	//update prevDiff data
-	const DataSize prevDiffSize(prevDataSize.number, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDiffSize));
-	prevDiffBucket->fillData(0.0f);	
-	float* prevDiff = prevDiffBucket->getData().get();
-	//calculate current inner diff
-	for (size_t pn = 0; pn < prevDataSize.number; pn++)
-	{
-		for (size_t pc = 0; pc < prevDiffSize.channels; pc++)
-		{
-			for (size_t ph = 0; ph < prevDiffSize.height; ph++)
+			for (size_t i = 0; i < futures.size(); i++)
 			{
-				for (size_t pw = 0; pw < prevDiffSize.width; pw++)
-				{
-					const size_t dataIdx = nextDataSize.getIndex(pn, pc, ph, pw);
-					const size_t paramIdx = prevDiffSize.getIndex(pn,pc, ph, pw);
-					prevDiff[paramIdx] += sigmodDfOperator(nextData[dataIdx]);
-				}
+				futures[i].wait();
 			}
 		}
+#else
+		sigmoid(prevData, nextData, nextSize.totalSize());
+#endif //WITH_PARALLEL_SUPPORT
 	}
-	//multiply next diff
-	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
+	void SigmodLayer::backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,
+		std::shared_ptr<DataBucket>& prevDiff, const std::shared_ptr<DataBucket>& nextDiff)
 	{
-		prevDiff[i] *= nextDiff[i];
-	}
-	nextDiffBucket = prevDiffBucket;
+		easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
+		const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+		const DataSize prevDiffSize = prevDiff->getSize();
+		const DataSize nextDiffSize = nextDiff->getSize();
+		const float* prevData = prev->getData().get();
+		const float* nextData = next->getData().get();
+		float* prevDiffData = prevDiff->getData().get();
+		const float* nextDiffData = nextDiff->getData().get();
+		easyAssert(prevSize == nextSize, "size must be equal!");
+		easyAssert(prevDiffSize == prevSize, "size of prevDiff and size of prev must be equals");
 
-	//update this layer's param
-	//Tanh layer : nop
-}
-
-EasyCNN::TanhLayer::TanhLayer()
-{
-
-}
-EasyCNN::TanhLayer::~TanhLayer()
-{
-
-}
-DEFINE_LAYER_TYPE(EasyCNN::TanhLayer, "TanhLayer");
-std::string EasyCNN::TanhLayer::getLayerType() const
-{
-	return layerType;
-}
-//f(x)=(e^x-e^(-x))/(e^x+e^(-x))
-static inline float tanhOperator(const float x)
-{
-	float result = 0;
-	const float ex = std::exp(x);
-	const float efx = std::exp(-x);
-	result = (ex - efx) / (ex + efx);
-	return result;
-}
-//f'(x)=1-x^(1/2)
-static inline float tanhDfOperator(const float x)
-{
-	return 1.0f - std::sqrt(x);
-}
-void EasyCNN::TanhLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
-{
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-
-	const float* prevRawData = prevDataBucket->getData().get();
-	float* nextRawData = nextDataBucket->getData().get();
-	for (size_t nn = 0; nn < nextDataSize.number; nn++)
-	{
-		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
+		//update prevDiff
+		prevDiff->fillData(0.0f);
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || prevSize.totalSize() <= 4 * 1024)
 		{
-			for (size_t nh = 0; nh < nextDataSize.height; nh++)
+			//calculate current inner diff
+			df_sigmoid(nextData, prevDiffData, prevDiffSize.totalSize());
+			//multiply next diff
+			mul_inplace(prevDiffData, nextDiffData, prevDiffSize.totalSize());
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			auto worker_func = [](const float* nextData, const float* nextDiff, float* prevDiffData, const size_t len){
+				//calculate current inner diff
+				df_sigmoid(nextData, prevDiffData, len);
+				//multiply next diff
+				mul_inplace(prevDiffData, nextDiff, len);
+			};
+			size_t payload_per_thread = prevSize.totalSize() / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
 			{
-				for (size_t nw = 0; nw < nextDataSize.width; nw++)
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, prevSize.totalSize());
+				futures.push_back(thread_pool->enqueue(worker_func, nextData + start, nextDiffData + start, prevDiffData + start, stop - start));
+				if (stop >= prevSize.totalSize())
 				{
-					const size_t nextDataIdx = nextDataSize.getIndex(nn, nc, nh, nw);
-					nextRawData[nextDataIdx] += tanhOperator(prevRawData[nextDataIdx]);
+					break;
 				}
 			}
-		}
-	}
-}
-void EasyCNN::TanhLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
-{
-	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
-	const float* prevData = prevDataBucket->getData().get();
-	const float* nextData = nextDataBucket->getData().get();
-	const float* nextDiff = nextDiffBucket->getData().get();
-	easyAssert(prevDataSize == nextDataSize, "size must be equal!");
-
-	//update prevDiff data
-	const DataSize prevDiffSize(prevDataSize.number, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDiffSize));
-	prevDiffBucket->fillData(0.0f);
-	float* prevDiff = prevDiffBucket->getData().get();
-	//calculate current inner diff
-	for (size_t pn = 0; pn < prevDataSize.number; pn++)
-	{
-		for (size_t pc = 0; pc < prevDiffSize.channels; pc++)
-		{
-			for (size_t ph = 0; ph < prevDiffSize.height; ph++)
+			for (size_t i = 0; i < futures.size(); i++)
 			{
-				for (size_t pw = 0; pw < prevDiffSize.width; pw++)
-				{
-					const size_t dataIdx = nextDataSize.getIndex(pn, pc, ph, pw);
-					const size_t paramIdx = prevDiffSize.getIndex(pn,pc, ph, pw);
-					prevDiff[paramIdx] += tanhDfOperator(nextData[dataIdx]);
-				}
+				futures[i].wait();
 			}
 		}
+#else
+		//calculate current inner diff
+		df_sigmoid(nextData, prevDiffData, prevDiffSize.totalSize());
+		//multiply next diff
+		mul_inplace(prevDiffData, nextDiffData, prevDiffSize.totalSize());
+#endif //WITH_PARALLEL_SUPPORT
+
+		//update this layer's param
+		//Tanh layer : nop
 	}
-	//multiply next diff
-	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
+
+	TanhLayer::TanhLayer()
 	{
-		prevDiff[i] *= nextDiff[i];
+
 	}
-	nextDiffBucket = prevDiffBucket;
-
-	//update this layer's param
-	//Tanh layer : nop
-}
-
-EasyCNN::ReluLayer::ReluLayer()
-{
-
-}
-EasyCNN::ReluLayer::~ReluLayer()
-{
-
-}
-DEFINE_LAYER_TYPE(EasyCNN::ReluLayer, "ReluLayer");
-std::string EasyCNN::ReluLayer::getLayerType() const
-{
-	return layerType;
-}
-//f(x)=max(x,0)
-static inline float reluOperator(const float x)
-{
-	float result = std::max(x, 0.0f);
-	return result;
-}
-//f'(x)=0(x<=0),1(x>0)
-static inline float reluDfOperator(const float x)
-{
-	//note : too small df is not suitable.
-	return x <= 0.0f ? 0.01f : 1.0f;
-}
-void EasyCNN::ReluLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
-{
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-
-	const float* prevRawData = prevDataBucket->getData().get();
-	float* nextRawData = nextDataBucket->getData().get();
-	for (size_t nn = 0; nn < nextDataSize.number; nn++)
+	TanhLayer::~TanhLayer()
 	{
-		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
+
+	}
+	DEFINE_LAYER_TYPE(TanhLayer, "TanhLayer");
+	std::string TanhLayer::getLayerType() const
+	{
+		return layerType;
+	}
+
+
+	void TanhLayer::forward(const std::shared_ptr<DataBucket> prev, std::shared_ptr<DataBucket> next)
+	{
+		const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+
+		const float* prevData = prev->getData().get();
+		float* nextData = next->getData().get();
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || prevSize.totalSize() <= 4 * 1024)
 		{
-			for (size_t nh = 0; nh < nextDataSize.height; nh++)
+			tanh(prevData, nextData, nextSize.totalSize());
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			size_t payload_per_thread = prevSize.totalSize() / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
 			{
-				for (size_t nw = 0; nw < nextDataSize.width; nw++)
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, prevSize.totalSize());
+				futures.push_back(thread_pool->enqueue(tanh, prevData + start, nextData + start, stop - start));
+				if (stop >= prevSize.totalSize())
 				{
-					const size_t nextDataIdx = nextDataSize.getIndex(nn, nc, nh, nw);
-					nextRawData[nextDataIdx] = reluOperator(prevRawData[nextDataIdx]);
+					break;
 				}
 			}
-		}
-	}
-}
-void EasyCNN::ReluLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
-{
-	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
-	const float* prevData = prevDataBucket->getData().get();
-	const float* nextData = nextDataBucket->getData().get();
-	const float* nextDiff = nextDiffBucket->getData().get();
-	easyAssert(prevDataSize == nextDataSize, "size must be equal!");
-
-	//update prevDiff data
-	const DataSize prevDiffSize(prevDataSize.number, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDiffSize));
-	prevDiffBucket->fillData(0.0f);
-	float* prevDiff = prevDiffBucket->getData().get();
-	//calculate current inner diff
-	for (size_t pn = 0; pn < prevDataSize.number; pn++)
-	{
-		for (size_t pc = 0; pc < prevDiffSize.channels; pc++)
-		{
-			for (size_t ph = 0; ph < prevDiffSize.height; ph++)
+			for (size_t i = 0; i < futures.size(); i++)
 			{
-				for (size_t pw = 0; pw < prevDiffSize.width; pw++)
-				{
-					const size_t dataIdx = nextDataSize.getIndex(pn, pc, ph, pw);
-					const size_t paramIdx = prevDiffSize.getIndex(pn,pc, ph, pw);
-					prevDiff[paramIdx] += reluDfOperator(nextData[dataIdx]);
-				}
+				futures[i].wait();
 			}
 		}
+#else
+		tanh(prevData, nextData, nextSize.totalSize());
+#endif //WITH_PARALLEL_SUPPORT
 	}
-	//multiply next diff
-	for (size_t i = 0; i < prevDiffBucket->getSize().totalSize(); i++)
+	void TanhLayer::backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,
+		std::shared_ptr<DataBucket>& prevDiff, const std::shared_ptr<DataBucket>& nextDiff)
 	{
-		prevDiff[i] *= nextDiff[i];
-	}
-	nextDiffBucket = prevDiffBucket;
+		easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
+			const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+		const DataSize prevDiffSize = prevDiff->getSize();
+		const DataSize nextDiffSize = nextDiff->getSize();
+		const float* prevData = prev->getData().get();
+		const float* nextData = next->getData().get();
+		float* prevDiffData = prevDiff->getData().get();
+		const float* nextDiffData = nextDiff->getData().get();
+		easyAssert(prevSize == nextSize, "size must be equal!");
+		easyAssert(prevDiffSize == prevSize, "size of prevDiff and size of prev must be equals");
 
-	//update this layer's param
-	//RELU layer : nop
-}
+		//update prevDiff
+		prevDiff->fillData(0.0f);		
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || prevSize.totalSize() <= 4 * 1024)
+		{
+			//calculate current inner diff
+			df_tanh(nextData, prevDiffData, prevDiffSize.totalSize());
+			//multiply next diff
+			mul_inplace(prevDiffData, nextDiffData, prevDiffSize.totalSize());
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			auto worker_func = [](const float* nextData, const float* nextDiffData, float* prevDiffData, const size_t len){
+				//calculate current inner diff
+				df_tanh(nextData, prevDiffData, len);
+				//multiply next diff
+				mul_inplace(prevDiffData, nextDiffData, len);
+			};
+			size_t payload_per_thread = prevSize.totalSize() / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
+			{
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, prevSize.totalSize());
+				futures.push_back(thread_pool->enqueue(worker_func, nextData + start, nextDiffData + start, prevDiffData + start, stop - start));
+				if (stop >= prevSize.totalSize())
+				{
+					break;
+				}
+			}
+			for (size_t i = 0; i < futures.size(); i++)
+			{
+				futures[i].wait();
+			}
+		}
+#else
+		//calculate current inner diff
+		df_tanh(nextData, prevDiffData, prevDiffSize.totalSize());
+		//multiply next diff
+		mul_inplace(prevDiffData, nextDiffData, prevDiffSize.totalSize());
+#endif //WITH_PARALLEL_SUPPORT
+
+		//update this layer's param
+		//Tanh layer : nop
+	}
+
+	ReluLayer::ReluLayer()
+	{
+
+	}
+	ReluLayer::~ReluLayer()
+	{
+
+	}
+	DEFINE_LAYER_TYPE(ReluLayer, "ReluLayer");
+	std::string ReluLayer::getLayerType() const
+	{
+		return layerType;
+	}
+
+
+	void ReluLayer::forward(const std::shared_ptr<DataBucket> prev, std::shared_ptr<DataBucket> next)
+	{
+		const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+
+		const float* prevData = prev->getData().get();
+		float* nextData = next->getData().get();
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || prevSize.totalSize() <= 4 * 1024)
+		{
+			relu(prevData, nextData, nextSize.totalSize());
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			size_t payload_per_thread = prevSize.totalSize() / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
+			{
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, prevSize.totalSize());
+				futures.push_back(thread_pool->enqueue(relu, prevData + start, nextData + start, stop - start));
+				if (stop >= prevSize.totalSize())
+				{
+					break;
+				}
+			}
+			for (size_t i = 0; i < futures.size(); i++)
+			{
+				futures[i].wait();
+			}
+		}
+#else
+		relu(prevData, nextData, nextSize.totalSize());
+#endif //WITH_PARALLEL_SUPPORT
+	}
+	void ReluLayer::backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,
+		std::shared_ptr<DataBucket>& prevDiff, const std::shared_ptr<DataBucket>& nextDiff)
+	{
+		easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
+		const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+		const DataSize prevDiffSize = prevDiff->getSize();
+		const DataSize nextDiffSize = nextDiff->getSize();
+		const float* prevData = prev->getData().get();
+		const float* nextData = next->getData().get();
+		float* prevDiffData = prevDiff->getData().get();
+		const float* nextDiffData = nextDiff->getData().get();
+		easyAssert(prevSize == nextSize, "size must be equal!");
+		easyAssert(prevDiffSize == prevSize, "size of prevDiff and size of prev must be equals");
+
+		//update prevDiff		
+		prevDiff->fillData(0.0f);		
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || prevSize.totalSize() <= 4 * 1024)
+		{
+			//calculate current inner diff
+			df_relu(nextData, prevDiffData, prevDiffSize.totalSize());
+			//multiply next diff
+			mul_inplace(prevDiffData, nextDiffData, prevDiffSize.totalSize());
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			auto worker_func = [](const float* nextData, const float* nextDiffData, float* prevDiffData, const size_t len){
+				//calculate current inner diff
+				df_relu(nextData, prevDiffData, len);
+				//multiply next diff
+				mul_inplace(prevDiffData, nextDiffData, len);
+			};
+			size_t payload_per_thread = prevSize.totalSize() / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
+			{
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, prevSize.totalSize());
+				futures.push_back(thread_pool->enqueue(worker_func, nextData + start, nextDiffData + start, prevDiffData + start, stop - start));
+				if (stop >= prevSize.totalSize())
+				{
+					break;
+				}
+			}
+			for (size_t i = 0; i < futures.size(); i++)
+			{
+				futures[i].wait();
+			}
+		}
+#else
+		//calculate current inner diff
+		df_relu(nextData, prevDiffData, prevDiffSize.totalSize());
+		//multiply next diff
+		mul_inplace(prevDiffData, nextDiffData, prevDiffSize.totalSize());
+#endif //WITH_PARALLEL_SUPPORT
+
+		//update this layer's param
+		//RELU layer : nop
+	}
+}//namespace

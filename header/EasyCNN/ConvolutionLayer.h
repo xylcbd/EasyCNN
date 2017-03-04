@@ -17,16 +17,17 @@ namespace EasyCNN
 		DECLARE_LAYER_TYPE;
 		virtual std::string getLayerType() const override;
 		virtual void solveInnerParams() override;
-		virtual void forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket) override;
-		virtual void backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket) override;
+		virtual void forward(const std::shared_ptr<DataBucket> prev, std::shared_ptr<DataBucket> next) override;
+		virtual void backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,
+			std::shared_ptr<DataBucket>& prevDiff, const std::shared_ptr<DataBucket>& nextDiff) override;
 	private:
 		ParamSize kernelSize;
 		size_t widthStep = 0;
 		size_t heightStep = 0;
-		std::shared_ptr<ParamBucket> kernelData;
-		std::shared_ptr<ParamBucket> kernelDiffData;
+		std::shared_ptr<ParamBucket> kernel;
+		std::shared_ptr<ParamBucket> kernelGradient;
 		bool enabledBias = false;
-		std::shared_ptr<ParamBucket> biasData;
-		std::shared_ptr<ParamBucket> biasDiffData;
+		std::shared_ptr<ParamBucket> bias;
+		std::shared_ptr<ParamBucket> biasGradient;
 	};
 }

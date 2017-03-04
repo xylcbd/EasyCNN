@@ -11,7 +11,7 @@ namespace EasyCNN
 	public:
 		Optimizer(const float _lr) :lr(_lr){}
 		void setLearningRate(const float _lr) { lr = _lr; };
-		virtual void update(std::vector<std::shared_ptr<DataBucket>> param, const std::vector<std::shared_ptr<DataBucket>> gradient) = 0;		
+		virtual void update(std::vector<std::shared_ptr<DataBucket>> params, const std::vector<std::shared_ptr<DataBucket>> gradients) = 0;		
 	protected:
 		float lr = 0.0f;
 	};
@@ -20,14 +20,14 @@ namespace EasyCNN
 	{
 	public:
 		SGD(const float _lr) :Optimizer(_lr){}
-		virtual void update(std::vector<std::shared_ptr<DataBucket>> param, const std::vector<std::shared_ptr<DataBucket>> gradient) override;
+		virtual void update(std::vector<std::shared_ptr<DataBucket>> params, const std::vector<std::shared_ptr<DataBucket>> gradients) override;
 	};
 
 	class SGDWithMomentum : public Optimizer
 	{
 	public:
 		SGDWithMomentum(const float _lr, const float _momentum) :Optimizer(_lr), momentum(_momentum){}
-		virtual void update(std::vector<std::shared_ptr<DataBucket>> param, const std::vector<std::shared_ptr<DataBucket>> gradient) override;
+		virtual void update(std::vector<std::shared_ptr<DataBucket>> params, const std::vector<std::shared_ptr<DataBucket>> gradients) override;
 	private:
 		float momentum = 0.0f;
 		std::vector<std::shared_ptr<DataBucket>> prevM;

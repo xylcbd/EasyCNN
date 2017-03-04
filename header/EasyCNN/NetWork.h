@@ -15,10 +15,10 @@ namespace EasyCNN
 		virtual ~NetWork();
 	public:
 		//common
-		float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket, const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
+		float getLoss(const std::shared_ptr<DataBucket> labelDataBucket, const std::shared_ptr<DataBucket> outputDataBucket);
 		//test only!
 		bool loadModel(const std::string& modelFile);
-		std::shared_ptr<EasyCNN::DataBucket> testBatch(const std::shared_ptr<DataBucket> inputDataBucket);
+		std::shared_ptr<DataBucket> testBatch(const std::shared_ptr<DataBucket> inputDataBucket);
 		//train only!
 		void setInputSize(const DataSize size);
 		void setLossFunctor(std::shared_ptr<LossFunctor> lossFunctor);
@@ -36,15 +36,16 @@ namespace EasyCNN
 		std::string decrypt(const std::string& content);
 	private:
 		//common
-		std::shared_ptr<EasyCNN::DataBucket> forward(const std::shared_ptr<DataBucket> inputDataBucket);
+		std::shared_ptr<DataBucket> forward(const std::shared_ptr<DataBucket> inputDataBucket);
 		float backward(const std::shared_ptr<DataBucket> labelDataBucket);
 		std::string serializeToString() const;
-		std::vector<std::shared_ptr<EasyCNN::Layer>> serializeFromString(const std::string content);
-		std::shared_ptr<EasyCNN::Layer> createLayerByType(const std::string layerType);
+		std::vector<std::shared_ptr<Layer>> serializeFromString(const std::string content);
+		std::shared_ptr<Layer> createLayerByType(const std::string layerType);
 	private:
 		Phase phase = Phase::Train;
 		std::vector<std::shared_ptr<Layer>> layers;
 		std::vector<std::shared_ptr<DataBucket>> dataBuckets;
+		std::vector<std::shared_ptr<DataBucket>> diffBuckets;
 		std::shared_ptr<LossFunctor> lossFunctor;
 		std::shared_ptr<Optimizer> optimizer;
 	};

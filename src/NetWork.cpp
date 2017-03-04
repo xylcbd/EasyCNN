@@ -12,309 +12,341 @@
 #include "EasyCNN/PoolingLayer.h"
 #include "EasyCNN/FullconnectLayer.h"
 #include "EasyCNN/SoftmaxLayer.h"
+#include "EasyCNN/DropoutLayer.h"
+#include "EasyCNN/BatchNormalizationLayer.h"
 //network
 #include "EasyCNN/NetWork.h"
 
+namespace EasyCNN
+{
+	NetWork::NetWork()
+	{
+		logVerbose("NetWork constructed.");
+	}
+	NetWork::~NetWork()
+	{
+		logVerbose("NetWork destructed.");
+	}
 
-EasyCNN::NetWork::NetWork()
-{
-	logVerbose("NetWork constructed.");
-}
-EasyCNN::NetWork::~NetWork()
-{
-	logVerbose("NetWork destructed.");
-}
-
-//////////////////////////////////////////////////////////////////////////
-//common
-void EasyCNN::NetWork::setPhase(Phase phase)
-{
-	logVerbose("NetWork setPhase begin.");
-	this->phase = phase;
-	logVerbose("NetWork setPhase end.");
-}
-EasyCNN::Phase EasyCNN::NetWork::getPhase() const
-{
-	return phase;
-}
-float EasyCNN::NetWork::getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket, const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket)
-{
-	return lossFunctor->getLoss(labelDataBucket, outputDataBucket);
-}
-std::string EasyCNN::NetWork::serializeToString() const
-{
-	const std::string spliter = " ";
-	std::stringstream ss;
-	const auto inputSize = dataBuckets[0]->getSize();
-	ss << inputSize.channels << spliter << inputSize.width << spliter << inputSize.height << spliter;
-	for (const auto& layer : layers)
+	//////////////////////////////////////////////////////////////////////////
+	//common
+	void NetWork::setPhase(Phase phase)
 	{
-		ss << layer->getLayerType() << spliter;
+		logVerbose("NetWork setPhase begin.");
+		this->phase = phase;
+		logVerbose("NetWork setPhase end.");
 	}
-	return ss.str();
-}
-std::shared_ptr<EasyCNN::Layer> EasyCNN::NetWork::createLayerByType(const std::string layerType)
-{
-	if (layerType == InputLayer::layerType)
+	Phase NetWork::getPhase() const
 	{
-		return std::make_shared<InputLayer>();
+		return phase;
 	}
-	else if (layerType == ConvolutionLayer::layerType)
+	float NetWork::getLoss(const std::shared_ptr<DataBucket> labelDataBucket, const std::shared_ptr<DataBucket> outputDataBucket)
 	{
-		return std::make_shared<ConvolutionLayer>();
-	}
-	else if (layerType == PoolingLayer::layerType)
-	{
-		return std::make_shared<PoolingLayer>();
-	}
-	else if (layerType == FullconnectLayer::layerType)
-	{
-		return std::make_shared<FullconnectLayer>();
-	}
-	else if (layerType == SoftmaxLayer::layerType)
-	{
-		return std::make_shared<SoftmaxLayer>();
-	}
-	else if (layerType == SigmodLayer::layerType)
-	{
-		return std::make_shared<SigmodLayer>();
-	}
-	else if (layerType == TanhLayer::layerType)
-	{
-		return std::make_shared<TanhLayer>();
-	}
-	else if (layerType == ReluLayer::layerType)
-	{
-		return std::make_shared<ReluLayer>();
-	}
-	else
-	{
-		logVerbose("layer type : %s", layerType.c_str());
-		easyAssert(false,"can't goto here.");
-		return nullptr;
-	}
-}
-std::vector<std::shared_ptr<EasyCNN::Layer>> EasyCNN::NetWork::serializeFromString(const std::string content)
-{
-	int number = 1;
-	int channels = 0;
-	int width = 0;
-	int height = 0;
-	std::stringstream ss(content);
-	ss >> channels >> width >> height;
-	setInputSize(DataSize(number, channels, width, height));
-	std::vector<std::shared_ptr<EasyCNN::Layer>> tmpLayers;	
-	while (!ss.eof())
-	{
-		std::string layerType;
-		ss >> layerType;
-		if (layerType.empty())
+		if (!lossFunctor)
 		{
-			continue;
+			return 0.0f;
 		}
-		std::shared_ptr<EasyCNN::Layer> layer = createLayerByType(layerType);
-		easyAssert(layer.get() != nullptr,"layer can't be null.");
-		tmpLayers.push_back(layer);
+		return lossFunctor->getLoss(labelDataBucket, outputDataBucket);
 	}
-	return tmpLayers;
-}
-std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket)
-{
-	logVerbose("NetWork forward begin.");
-	easyAssert(layers.size() > 1, "layer count is less than 2.");
-	easyAssert(layers[0]->getLayerType() == InputLayer::layerType, "first layer is not input layer.");
-	easyAssert(dataBuckets.size() > 0, "data buckets is not ready.");
-	//copy data from inputDataBucket
-	//reshape data bucket
-	const auto oldNumber = dataBuckets[0]->getSize().number;
-	const auto newNumber = inputDataBucket->getSize().number;
-	if (newNumber != oldNumber)
+	std::string NetWork::serializeToString() const
 	{
+		const std::string spliter = " ";
+		std::stringstream ss;
+		const auto inputSize = dataBuckets[0]->getSize();
+		ss << inputSize.channels << spliter << inputSize.width << spliter << inputSize.height << spliter;
+		for (const auto& layer : layers)
+		{
+			ss << layer->getLayerType() << spliter;
+		}
+		return ss.str();
+	}
+	std::shared_ptr<Layer> NetWork::createLayerByType(const std::string layerType)
+	{
+		if (layerType == InputLayer::layerType)
+		{
+			return std::make_shared<InputLayer>();
+		}
+		else if (layerType == ConvolutionLayer::layerType)
+		{
+			return std::make_shared<ConvolutionLayer>();
+		}
+		else if (layerType == PoolingLayer::layerType)
+		{
+			return std::make_shared<PoolingLayer>();
+		}
+		else if (layerType == FullconnectLayer::layerType)
+		{
+			return std::make_shared<FullconnectLayer>();
+		}
+		else if (layerType == SoftmaxLayer::layerType)
+		{
+			return std::make_shared<SoftmaxLayer>();
+		}
+		else if (layerType == SigmodLayer::layerType)
+		{
+			return std::make_shared<SigmodLayer>();
+		}
+		else if (layerType == TanhLayer::layerType)
+		{
+			return std::make_shared<TanhLayer>();
+		}
+		else if (layerType == ReluLayer::layerType)
+		{
+			return std::make_shared<ReluLayer>();
+		}
+		else if (layerType == DropoutLayer::layerType)
+		{
+			return std::make_shared<DropoutLayer>();
+		}
+		else if (layerType == BatchNormalizationLayer::layerType)
+		{
+			return std::make_shared<BatchNormalizationLayer>();
+		}
+		else
+		{
+			logVerbose("layer type : %s", layerType.c_str());
+			easyAssert(false, "can't goto here.");
+			return nullptr;
+		}
+	}
+	std::vector<std::shared_ptr<Layer>> NetWork::serializeFromString(const std::string content)
+	{
+		int number = 1;
+		int channels = 0;
+		int width = 0;
+		int height = 0;
+		std::stringstream ss(content);
+		ss >> channels >> width >> height;
+		setInputSize(DataSize(number, channels, width, height));
+		std::vector<std::shared_ptr<Layer>> tmpLayers;
+		while (!ss.eof())
+		{
+			std::string layerType;
+			ss >> layerType;
+			if (layerType.empty())
+			{
+				continue;
+			}
+			std::shared_ptr<Layer> layer = createLayerByType(layerType);
+			easyAssert(layer.get() != nullptr, "layer can't be null.");
+			tmpLayers.push_back(layer);
+		}
+		return tmpLayers;
+	}
+	std::shared_ptr<DataBucket> NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket)
+	{
+		logVerbose("NetWork forward begin.");
+		easyAssert(layers.size() > 1, "layer count is less than 2.");
+		easyAssert(layers[0]->getLayerType() == InputLayer::layerType, "first layer is not input layer.");
+		easyAssert(dataBuckets.size() > 0, "data buckets is not ready.");
+		//copy data from inputDataBucket
+		//reshape data bucket
+		const auto oldNumber = dataBuckets[0]->getSize().number;
+		const auto newNumber = inputDataBucket->getSize().number;
+		if (newNumber != oldNumber)
+		{
+			for (size_t i = 0; i < dataBuckets.size(); i++)
+			{
+				auto newSize = dataBuckets[i]->getSize();
+				newSize.number = newNumber;
+				dataBuckets[i].reset(new DataBucket(newSize));
+			}
+		}
+		inputDataBucket->cloneTo(*dataBuckets[0]);
+
+		for (size_t i = 0; i < layers.size(); i++)
+		{
+			logVerbose("NetWork layer[%d](%s) forward begin.", i, layers[i]->getLayerType().c_str());
+			layers[i]->forward(dataBuckets[i], dataBuckets[i + 1]);
+			logVerbose("NetWork layer[%d](%s) forward end.", i, layers[i]->getLayerType().c_str());
+		}
+
+		logVerbose("NetWork forward end.");
+		return dataBuckets[dataBuckets.size() - 1];
+	}
+	float NetWork::backward(const std::shared_ptr<DataBucket> labelDataBucket)
+	{
+		easyAssert(phase == Phase::Train, "phase must be train!");
+		logVerbose("NetWork backward begin.");
+		easyAssert(layers.size() > 1, "layer count is less than 2.");
+		easyAssert(layers[0]->getLayerType() == InputLayer::layerType, "first layer is not input layer.");
+		easyAssert(lossFunctor.get() != nullptr, "loss functor can't be empty!");
+
+		const auto lastOutputData = dataBuckets[dataBuckets.size() - 1];
+		easyAssert(lastOutputData->getSize() == labelDataBucket->getSize(), "last data bucket's size must be equals with label.");
+
+		//get loss
+		const float loss = getLoss(labelDataBucket, lastOutputData);
+
+		//get diff
+		if (diffBuckets.size() != layers.size()+1)
+		{
+			diffBuckets.push_back(std::make_shared<DataBucket>(labelDataBucket->getSize()));
+		}
 		for (size_t i = 0; i < dataBuckets.size(); i++)
 		{
-			auto newSize = dataBuckets[i]->getSize();
-			newSize.number = newNumber;
-			dataBuckets[i].reset(new DataBucket(newSize));
+			if (diffBuckets[i]->getSize() != dataBuckets[i]->getSize())
+			{
+				diffBuckets[i].reset(new DataBucket(dataBuckets[i]->getSize()));
+			}
 		}
-	}
-	inputDataBucket->cloneTo(*dataBuckets[0]);
+		if (diffBuckets[diffBuckets.size()-1]->getSize() != labelDataBucket->getSize())
+		{
+			diffBuckets[diffBuckets.size() - 1].reset(new DataBucket(labelDataBucket->getSize()));
+		}
 
-	for (size_t i = 0; i < layers.size(); i++)
-	{
-		logVerbose("NetWork layer[%d](%s) forward begin.", i, layers[i]->getLayerType().c_str());
-		layers[i]->forward(dataBuckets[i], dataBuckets[i + 1]);
-		logVerbose("NetWork layer[%d](%s) forward end.", i, layers[i]->getLayerType().c_str());
-	}
+		lossFunctor->getDiff(labelDataBucket, lastOutputData, diffBuckets[diffBuckets.size()-1]);
 
-	logVerbose("NetWork forward end.");
-	return dataBuckets[dataBuckets.size() - 1];
-}
-float EasyCNN::NetWork::backward(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket)
-{
-	easyAssert(phase == Phase::Train, "phase must be train!");
-	logVerbose("NetWork backward begin.");
-	easyAssert(layers.size() > 1, "layer count is less than 2.");
-	easyAssert(layers[0]->getLayerType() == InputLayer::layerType, "first layer is not input layer.");
-	easyAssert(lossFunctor.get() != nullptr, "loss functor can't be empty!");
+		//other layer backward
+		for (int i = (int)(layers.size()) - 1; i >= 0; i--)
+		{
+			logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());
+			layers[i]->backward(dataBuckets[i], dataBuckets[i + 1], diffBuckets[i], diffBuckets[i+1]);
+			logVerbose("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
+		}
 
-	const auto lastOutputData = dataBuckets[dataBuckets.size() - 1];
-	easyAssert(lastOutputData->getSize() == labelDataBucket->getSize(), "last data bucket's size must be equals with label.");
 
-	//get loss
-	const float loss = getLoss(labelDataBucket, lastOutputData);
+		//update parameters
+		for (int i = (int)(layers.size()) - 1; i >= 0; i--)
+		{
+			logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());
+			optimizer->update(layers[i]->getParamData(), layers[i]->getDiffData());
+			logVerbose("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
+		}
 
-	//get diff
-	std::shared_ptr<DataBucket> nextDiffBucket = lossFunctor->getDiff(labelDataBucket, lastOutputData);
+		logVerbose("NetWork backward end.");
 
-	//other layer backward
-	for (int i = (int)(layers.size()) - 1; i >= 0; i--)
-	{
-		logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());		
-		layers[i]->backward(dataBuckets[i], dataBuckets[i + 1], nextDiffBucket);
-		logVerbose("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
+		return loss;
 	}
 
-
-	//update parameters
-	for (int i = (int)(layers.size()) - 1; i >= 0; i--)
+	//////////////////////////////////////////////////////////////////////////
+	//test only!
+	bool NetWork::loadModel(const std::string& modelFile)
 	{
-		logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());
-		optimizer->update(layers[i]->getParamData(), layers[i]->getDiffData());
-		logVerbose("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
-	}
-
-	logVerbose("NetWork backward end.");
-
-	return loss;
-}
-
-//////////////////////////////////////////////////////////////////////////
-//test only!
-bool EasyCNN::NetWork::loadModel(const std::string& modelFile)
-{
-	std::ifstream ifs(modelFile);
-	if (!ifs.is_open())
-	{
-		return false;
-	}
-	//network param
-	std::string line;
-	std::getline(ifs, line);
-	line = decrypt(line);
-	std::vector<std::shared_ptr<EasyCNN::Layer>> tmpLayers = this->serializeFromString(line);
-	//layers' param
-	for (auto& layer : tmpLayers)
-	{
+		std::ifstream ifs(modelFile);
+		if (!ifs.is_open())
+		{
+			return false;
+		}
+		//network param
+		std::string line;
 		std::getline(ifs, line);
 		line = decrypt(line);
-		//init input size
-		const std::shared_ptr<DataBucket> prevDataBucket = dataBuckets[dataBuckets.size() - 1];
-		easyAssert(prevDataBucket.get() != nullptr, "previous bucket is null.");
-		const DataSize inputSize = prevDataBucket->getSize();
+		std::vector<std::shared_ptr<Layer>> tmpLayers = this->serializeFromString(line);
+		//layers' param
+		for (auto& layer : tmpLayers)
+		{
+			std::getline(ifs, line);
+			line = decrypt(line);
+			//init input size
+			const std::shared_ptr<DataBucket> prev = dataBuckets[dataBuckets.size() - 1];
+			easyAssert(prev.get() != nullptr, "previous bucket is null.");
+			const DataSize inputSize = prev->getSize();
+			layer->setInputBucketSize(inputSize);
+			layer->serializeFromString(line);
+			addayer(layer);
+		}
+		setPhase(Phase::Test);
+		return true;
+	}
+	//train phase may use this
+	std::shared_ptr<DataBucket> NetWork::testBatch(const std::shared_ptr<DataBucket> inputDataBucket)
+	{
+		setPhase(Phase::Test);
+		return forward(inputDataBucket);
+	}
+
+	//////////////////////////////////////////////////////////////////////////
+	//train only!
+	void NetWork::setInputSize(const DataSize size)
+	{
+		logVerbose("NetWork setInputSize begin.");
+		easyAssert(size.number > 0 && size.channels > 0 && size.width > 0 && size.height > 0, "parameter invalidate.");
+		easyAssert(dataBuckets.empty(), "dataBuckets must be empty now!");		
+		dataBuckets.push_back(std::make_shared<DataBucket>(size));
+		diffBuckets.push_back(std::make_shared<DataBucket>(size));
+		logVerbose("NetWork setInputSize end.");
+	}
+	void NetWork::setLossFunctor(std::shared_ptr<LossFunctor> lossFunctor)
+	{
+		logVerbose("NetWork setInputSize begin.");
+		this->lossFunctor = lossFunctor;
+		logVerbose("NetWork setInputSize end.");
+	}
+	void NetWork::setOptimizer(std::shared_ptr<Optimizer> optimizer)
+	{
+		logVerbose("NetWork setOptimizer begin.");
+		this->optimizer = optimizer;
+		logVerbose("NetWork setOptimizer end.");
+	}
+	void NetWork::setLearningRate(const float lr)
+	{
+		this->optimizer->setLearningRate(lr);
+	}
+	void NetWork::addayer(std::shared_ptr<Layer> layer)
+	{
+		const auto layer_type = layer->getLayerType();
+		logVerbose("NetWork addayer begin , type : %s", layer_type.c_str());
+		layers.push_back(layer);
+
+		easyAssert(dataBuckets.size() >= 1, "bucket count is less than 1.");
+		const std::shared_ptr<DataBucket> prev = dataBuckets[dataBuckets.size() - 1];
+		easyAssert(prev.get() != nullptr, "previous bucket is null.");
+		const DataSize inputSize = prev->getSize();
+		layer->setPhase(phase);
 		layer->setInputBucketSize(inputSize);
-		layer->serializeFromString(line);
-		addayer(layer);
+		layer->solveInnerParams();
+		const DataSize outputSize = layer->getOutputBucketSize();
+		//dataBucket setting params
+		dataBuckets.push_back(std::make_shared<DataBucket>(outputSize));
+		diffBuckets.push_back(std::make_shared<DataBucket>(outputSize));
+		logVerbose("NetWork addayer end. add data bucket done.");
 	}
-	setPhase(Phase::Test);
-	return true;
-}
-//train phase may use this
-std::shared_ptr<EasyCNN::DataBucket> EasyCNN::NetWork::testBatch(const std::shared_ptr<DataBucket> inputDataBucket)
-{
-	setPhase(EasyCNN::Phase::Test);
-	return forward(inputDataBucket);
-}
-
-//////////////////////////////////////////////////////////////////////////
-//train only!
-void EasyCNN::NetWork::setInputSize(const DataSize size)
-{
-	logVerbose("NetWork setInputSize begin.");
-	easyAssert(size.number > 0 && size.channels > 0 && size.width > 0 && size.height > 0, "parameter invalidate.");
-	easyAssert(dataBuckets.empty(), "dataBuckets must be empty now!");
-	std::shared_ptr<DataBucket> dataBucket = std::make_shared<DataBucket>(size);
-	dataBuckets.push_back(dataBucket);
-	logVerbose("NetWork setInputSize end.");
-}
-void EasyCNN::NetWork::setLossFunctor(std::shared_ptr<LossFunctor> lossFunctor)
-{
-	logVerbose("NetWork setInputSize begin.");
-	this->lossFunctor = lossFunctor;
-	logVerbose("NetWork setInputSize end.");
-}
-void EasyCNN::NetWork::setOptimizer(std::shared_ptr<Optimizer> optimizer)
-{
-	logVerbose("NetWork setOptimizer begin.");
-	this->optimizer = optimizer;
-	logVerbose("NetWork setOptimizer end.");
-}
-void EasyCNN::NetWork::setLearningRate(const float lr)
-{
-	this->optimizer->setLearningRate(lr);
-}
-void EasyCNN::NetWork::addayer(std::shared_ptr<Layer> layer)
-{
-	const auto layer_type = layer->getLayerType();
-	logVerbose("NetWork addayer begin , type : %s", layer_type.c_str());
-	layers.push_back(layer);
-
-	easyAssert(dataBuckets.size() >= 1, "bucket count is less than 1.");
-	const std::shared_ptr<DataBucket> prevDataBucket = dataBuckets[dataBuckets.size() - 1];
-	easyAssert(prevDataBucket.get() != nullptr, "previous bucket is null.");
-	const DataSize inputSize = prevDataBucket->getSize();
-	layer->setPhase(phase);
-	layer->setInputBucketSize(inputSize);
-	layer->solveInnerParams();
-	const DataSize outputSize = layer->getOutputBucketSize();
-	std::shared_ptr<DataBucket> dataBucket = std::make_shared<DataBucket>(outputSize);
-	//dataBucket setting params
-	dataBuckets.push_back(dataBucket);
-	logVerbose("NetWork addayer end. add data bucket done.");
-}
-float EasyCNN::NetWork::trainBatch(const std::shared_ptr<DataBucket> inputDataBucket,
-	const std::shared_ptr<DataBucket> labelDataBucket)
-{
-	setPhase(EasyCNN::Phase::Train);
-	logVerbose("NetWork trainBatch begin.");
-	forward(inputDataBucket);
-	const float loss = backward(labelDataBucket);
-	logVerbose("NetWork trainBatch end.");
-	return loss;
-}
-bool EasyCNN::NetWork::saveModel(const std::string& modelFile)
-{
-	std::ofstream ofs(modelFile);
-	if (!ofs.is_open())
+	float NetWork::trainBatch(const std::shared_ptr<DataBucket> inputDataBucket,
+		const std::shared_ptr<DataBucket> labelDataBucket)
 	{
-		return false;
+		setPhase(Phase::Train);
+		logVerbose("NetWork trainBatch begin.");
+		forward(inputDataBucket);
+		const float loss = backward(labelDataBucket);
+		logVerbose("NetWork trainBatch end.");
+		return loss;
 	}
-	//network param
-	ofs << encrypt(this->serializeToString()) + "\n";
-	//layers' param
-	for (const auto& layer : layers)
-	{		
-		ofs << encrypt(layer->serializeToString()) + "\n";
+	bool NetWork::saveModel(const std::string& modelFile)
+	{
+		std::ofstream ofs(modelFile);
+		if (!ofs.is_open())
+		{
+			return false;
+		}
+		//network param
+		ofs << encrypt(this->serializeToString()) + "\n";
+		//layers' param
+		for (const auto& layer : layers)
+		{
+			ofs << encrypt(layer->serializeToString()) + "\n";
+		}
+		return true;
 	}
-	return true;
-}
 
-//toy crypt only now! you can custom it.
-std::string EasyCNN::NetWork::encrypt(const std::string& content)
-{
-	std::string message = content;
-	for (size_t i = 0; i < message.size(); i++)
+	//toy crypt only now! you can custom it.
+	std::string NetWork::encrypt(const std::string& content)
 	{
-		message[i] -= 15;
+		std::string message = content;
+		for (size_t i = 0; i < message.size(); i++)
+		{
+			message[i] -= 15;
+		}
+		return message;
 	}
-	return message;
-}
-std::string EasyCNN::NetWork::decrypt(const std::string& content)
-{
-	std::string message = content;
-	message = message.substr(0, message.size() - 1);
-	for (size_t i = 0; i < message.size(); i++)
+	std::string NetWork::decrypt(const std::string& content)
 	{
-		message[i] += 15;
+		std::string message = content;
+		message = message.substr(0, message.size() - 1);
+		for (size_t i = 0; i < message.size(); i++)
+		{
+			message[i] += 15;
+		}
+		return message;
 	}
-	return message;
-}
+}//namespace

@@ -1,337 +1,399 @@
 #include <sstream>
 #include "EasyCNN/ConvolutionLayer.h"
 #include "EasyCNN/CommonTools.h"
+#include "EasyCNN/MathFunctions.h"
 
 #if WITH_OPENCV_DEBUG
 #include "opencv2/opencv.hpp"
 #endif
 
-EasyCNN::ConvolutionLayer::ConvolutionLayer()
+namespace EasyCNN
 {
+	ConvolutionLayer::ConvolutionLayer()
+	{
 
-}
-EasyCNN::ConvolutionLayer::~ConvolutionLayer()
-{
+	}
+	ConvolutionLayer::~ConvolutionLayer()
+	{
 
-}
-void EasyCNN::ConvolutionLayer::setParamaters(const ParamSize _kernelSize, const size_t _widthStep, const size_t _heightStep, const bool _enabledBias)
-{
-	easyAssert(_kernelSize.number > 0 && _kernelSize.channels > 0 && 
-		_kernelSize.width > 0 && _kernelSize.height > 0 && _widthStep > 0 && _heightStep > 0,
-		"kernel size or step is invalidate.");
-	kernelSize = _kernelSize;
-	widthStep = _widthStep;
-	heightStep = _heightStep;
-	enabledBias = _enabledBias;
-}
-std::string EasyCNN::ConvolutionLayer::serializeToString() const
-{
-	const std::string spliter = " ";
-	std::stringstream ss;	
-	//layer desc
-	ss << getLayerType() << spliter
-		<< kernelSize.number << spliter << kernelSize.channels << spliter << kernelSize.width << spliter << kernelSize.height << spliter
-		<< widthStep << spliter << heightStep << spliter << enabledBias << spliter;
-	//weight
-	const auto kernel = kernelData->getData().get();
-	for (size_t i = 0; i < kernelSize.totalSize();i++)
-	{
-		ss << kernel[i] << spliter;
 	}
-	//bias
-	if (enabledBias)
+	void ConvolutionLayer::setParamaters(const ParamSize _kernelSize, const size_t _widthStep, const size_t _heightStep, const bool _enabledBias)
 	{
-		const auto bias = biasData->getData().get();
-		const auto biasSize = biasData->getSize();
-		for (size_t i = 0; i < biasSize.totalSize(); i++)
+		easyAssert(_kernelSize.number > 0 && _kernelSize.channels > 0 &&
+			_kernelSize.width > 0 && _kernelSize.height > 0 && _widthStep > 0 && _heightStep > 0,
+			"kernel size or step is invalidate.");
+		kernelSize = _kernelSize;
+		widthStep = _widthStep;
+		heightStep = _heightStep;
+		enabledBias = _enabledBias;
+	}
+	std::string ConvolutionLayer::serializeToString() const
+	{
+		const std::string spliter = " ";
+		std::stringstream ss;
+		//layer desc
+		ss << getLayerType() << spliter
+			<< kernelSize.number << spliter << kernelSize.channels << spliter << kernelSize.width << spliter << kernelSize.height << spliter
+			<< widthStep << spliter << heightStep << spliter << enabledBias << spliter;
+		//weight
+		const auto kernelData = kernel->getData().get();
+		for (size_t i = 0; i < kernelSize.totalSize(); i++)
 		{
-			ss << bias[i] << spliter;
+			ss << kernelData[i] << spliter;
 		}
-	}
-	return ss.str();
-}
-void EasyCNN::ConvolutionLayer::serializeFromString(const std::string content)
-{
-	std::stringstream ss(content);
-	//layer desc
-	std::string _layerType;
-	ss >> _layerType
-		>> kernelSize.number >> kernelSize.channels >> kernelSize.width >> kernelSize.height
-		>> widthStep >> heightStep >> enabledBias;
-	easyAssert(_layerType == layerType, "layer type is invalidate.");
-	solveInnerParams();
-	//weight
-	auto kernel = kernelData->getData().get();
-	for (size_t i = 0; i < kernelSize.totalSize(); i++)
-	{
-		ss >> kernel[i];
-	}
-	//bias
-	if (enabledBias)
-	{
-		const auto bias = biasData->getData().get();
-		const auto biasSize = biasData->getSize();
-		for (size_t i = 0; i < biasSize.totalSize(); i++)
+		//bias
+		if (enabledBias)
 		{
-			ss >> bias[i];
-		}
-	}
-}
-DEFINE_LAYER_TYPE(EasyCNN::ConvolutionLayer, "ConvolutionLayer");
-std::string EasyCNN::ConvolutionLayer::getLayerType() const
-{
-	return layerType;
-}
-void EasyCNN::ConvolutionLayer::solveInnerParams()
-{
-	const DataSize inputSize = getInputBucketSize();
-	kernelSize.channels = inputSize.channels;
-	easyAssert(inputSize.number > 0 && inputSize.channels > 0 && inputSize.width > 0 && inputSize.height > 0, "input size is invalidate.");
-	easyAssert(kernelSize.number > 0 && kernelSize.channels > 0 && kernelSize.width > 0 && kernelSize.height > 0 && widthStep > 0 && heightStep > 0,
-		"kernel size or step is invalidate.");
-	DataSize outputSize;
-	outputSize.number = inputSize.number;
-	outputSize.channels = kernelSize.number;
-	outputSize.width = (inputSize.width-kernelSize.width) / widthStep + 1;
-	outputSize.height = (inputSize.height-kernelSize.height) / heightStep + 1;
-	setOutpuBuckerSize(outputSize);
-	easyAssert(outputSize.number > 0 && outputSize.channels > 0 && outputSize.width > 0 && outputSize.height > 0, "output size is invalidate.");
-	if (kernelData.get() == nullptr)
-	{
-		kernelData.reset(new ParamBucket(kernelSize));
-		normal_distribution_init(kernelData->getData().get(), kernelData->getSize().totalSize(), 0.0f, 0.1f);
-	}
-	if (kernelDiffData.get() == nullptr)
-	{
-		kernelDiffData.reset(new ParamBucket(kernelData->getSize()));
-		const_distribution_init(kernelDiffData->getData().get(), kernelDiffData->getSize().totalSize(), 0.0f);
-	}
-	if (enabledBias)
-	{
-		if (biasData.get() == nullptr)
-		{
-			biasData.reset(new ParamBucket(ParamSize(kernelSize.number, 1, 1, 1)));
-			const_distribution_init(biasData->getData().get(), biasData->getSize().totalSize(), 0.0f);
-		}
-		if (biasDiffData.get() == nullptr)
-		{
-			biasDiffData.reset(new ParamBucket(biasData->getSize()));
-			const_distribution_init(biasDiffData->getData().get(), biasDiffData->getSize().totalSize(), 0.0f);
-		}
-	}
-	//parmas
-	params.clear();
-	params.push_back(kernelData);
-	params.push_back(biasData);
-	//diffs
-	diff.clear();
-	diff.push_back(kernelDiffData);
-	diff.push_back(biasDiffData);
-}
-void EasyCNN::ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prevDataBucket, std::shared_ptr<DataBucket> nextDataBucket)
-{
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-
-	const float* prevRawData = prevDataBucket->getData().get();
-	const float* kernelRawData = kernelData->getData().get();
-	const float* biasRawData = biasData->getData().get();
-	float* nextRawData = nextDataBucket->getData().get();
-	for (size_t nn = 0; nn < nextDataSize.number; nn++)
-	{			
-		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
-		{		
-			for (size_t nh = 0; nh < nextDataSize.height; nh++)
+			const auto biasData = bias->getData().get();
+			const auto biasSize = bias->getSize();
+			for (size_t i = 0; i < biasSize.totalSize(); i++)
 			{
-				for (size_t nw = 0; nw < nextDataSize.width; nw++)
-				{
-					const size_t inStartX = nw*widthStep;
-					const size_t inStartY = nh*heightStep;					
-					float sum = 0;
-					for (size_t kc = 0; kc < kernelSize.channels; kc++)
-					{
-						for (size_t kh = 0; kh < kernelSize.height; kh++)
-						{
-							for (size_t kw = 0; kw < kernelSize.width; kw++)
-							{
-								const size_t prevDataIdx = prevDataSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
-								const size_t kernelIdx = kernelSize.getIndex(nc,kc, kh, kw);
-								sum += prevRawData[prevDataIdx] * kernelRawData[kernelIdx];
-							}
-						}
-					}
-					if (enabledBias)
-					{
-						const size_t biasIdx = nc;
-						sum += biasRawData[biasIdx];
-					}
-					const size_t nextDataIdx = nextDataSize.getIndex(nn, nc, nh, nw);
-					nextRawData[nextDataIdx] = sum;
-				}
+				ss << biasData[i] << spliter;
+			}
+		}
+		return ss.str();
+	}
+	void ConvolutionLayer::serializeFromString(const std::string content)
+	{
+		std::stringstream ss(content);
+		//layer desc
+		std::string _layerType;
+		ss >> _layerType
+			>> kernelSize.number >> kernelSize.channels >> kernelSize.width >> kernelSize.height
+			>> widthStep >> heightStep >> enabledBias;
+		easyAssert(_layerType == layerType, "layer type is invalidate.");
+		solveInnerParams();
+		//weight
+		auto kernelData = kernel->getData().get();
+		for (size_t i = 0; i < kernelSize.totalSize(); i++)
+		{
+			ss >> kernelData[i];
+		}
+		//bias
+		if (enabledBias)
+		{
+			const auto biasData = bias->getData().get();
+			const auto biasSize = bias->getSize();
+			for (size_t i = 0; i < biasSize.totalSize(); i++)
+			{
+				ss >> biasData[i];
 			}
 		}
 	}
+	DEFINE_LAYER_TYPE(ConvolutionLayer, "ConvolutionLayer");
+	std::string ConvolutionLayer::getLayerType() const
+	{
+		return layerType;
+	}
+	void ConvolutionLayer::solveInnerParams()
+	{
+		const DataSize inputSize = getInputBucketSize();
+		kernelSize.channels = inputSize.channels;
+		easyAssert(inputSize.number > 0 && inputSize.channels > 0 && inputSize.width > 0 && inputSize.height > 0, "input size is invalidate.");
+		easyAssert(kernelSize.number > 0 && kernelSize.channels > 0 && kernelSize.width > 0 && kernelSize.height > 0 && widthStep > 0 && heightStep > 0,
+			"kernel size or step is invalidate.");
+		DataSize outputSize;
+		outputSize.number = inputSize.number;
+		outputSize.channels = kernelSize.number;
+		outputSize.width = (inputSize.width - kernelSize.width) / widthStep + 1;
+		outputSize.height = (inputSize.height - kernelSize.height) / heightStep + 1;
+		setOutpuBuckerSize(outputSize);
+		easyAssert(outputSize.number > 0 && outputSize.channels > 0 && outputSize.width > 0 && outputSize.height > 0, "output size is invalidate.");
+		if (kernel.get() == nullptr)
+		{
+			kernel.reset(new ParamBucket(kernelSize));
+			normal_distribution_init(kernel->getData().get(), kernel->getSize().totalSize(), 0.0f, 0.1f);
+		}
+		if (kernelGradient.get() == nullptr)
+		{
+			kernelGradient.reset(new ParamBucket(kernel->getSize()));
+			const_distribution_init(kernelGradient->getData().get(), kernelGradient->getSize().totalSize(), 0.0f);
+		}
+		if (enabledBias)
+		{
+			if (bias.get() == nullptr)
+			{
+				bias.reset(new ParamBucket(ParamSize(kernelSize.number, 1, 1, 1)));
+				const_distribution_init(bias->getData().get(), bias->getSize().totalSize(), 0.0f);
+			}
+			if (biasGradient.get() == nullptr)
+			{
+				biasGradient.reset(new ParamBucket(bias->getSize()));
+				const_distribution_init(biasGradient->getData().get(), biasGradient->getSize().totalSize(), 0.0f);
+			}
+		}
+		//parmas
+		params.clear();
+		params.push_back(kernel);
+		params.push_back(bias);
+		//diffs
+		gradients.clear();
+		gradients.push_back(kernelGradient);
+		gradients.push_back(biasGradient);
+	}
+	void ConvolutionLayer::forward(const std::shared_ptr<DataBucket> prev, std::shared_ptr<DataBucket> next)
+	{
+		const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+
+		const float* prevData = prev->getData().get();
+		const float* kernelData = kernel->getData().get();
+		const float* biasData = bias->getData().get();
+		float* nextData = next->getData().get();
+
+		auto conv_func = [&](const size_t nnStart, const size_t nnStop){
+			for (size_t nn = nnStart; nn < nnStop; nn++)
+			{
+				for (size_t nc = 0; nc < nextSize.channels; nc++)
+				{
+					for (size_t nh = 0; nh < nextSize.height; nh++)
+					{
+						for (size_t nw = 0; nw < nextSize.width; nw++)
+						{
+							const size_t inStartX = nw*widthStep;
+							const size_t inStartY = nh*heightStep;
+							float sum = 0;
+							for (size_t kc = 0; kc < kernelSize.channels; kc++)
+							{
+								for (size_t kh = 0; kh < kernelSize.height; kh++)
+								{
+									for (size_t kw = 0; kw < kernelSize.width; kw++)
+									{
+										const size_t prevIdx = prevSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
+										const size_t kernelIdx = kernelSize.getIndex(nc, kc, kh, kw);
+										sum += prevData[prevIdx] * kernelData[kernelIdx];
+									}
+								}
+							}
+							if (enabledBias)
+							{
+								const size_t biasIdx = nc;
+								sum += biasData[biasIdx];
+							}
+							const size_t nextIdx = nextSize.getIndex(nn, nc, nh, nw);
+							nextData[nextIdx] = sum;
+						}
+					}
+				}
+			}
+		};
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || nextSize.number <= 1)
+		{
+			conv_func(0,nextSize.number);
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			size_t payload_per_thread = nextSize.number / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
+			{
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, nextSize.number);
+				futures.push_back(thread_pool->enqueue(conv_func, start, stop));
+				if (stop >= nextSize.number)
+				{
+					break;
+				}
+			}
+			for (size_t i = 0; i < futures.size(); i++)
+			{
+				futures[i].wait();
+			}
+		}
+#else
+		conv_func(0,nextSize.number);
+#endif //#if WITH_PARALLEL_SUPPORT
 
 #if WITH_OPENCV_DEBUG
-	//input image
-	for (int pn = 0; pn < prevDataSize.number; pn++)
-	{
-		for (int pc = 0; pc < prevDataSize.channels; pc++)
+		//input image
+		for (int pn = 0; pn < prevSize.number; pn++)
 		{
-			const float* imageData = prevRawData + pn*prevDataSize._3DSize() + pc*prevDataSize._2DSize();
-			const size_t imageWidth = prevDataSize.width;
-			const size_t imageStride = imageWidth;
-			const size_t imageHeight = prevDataSize.height;
-			const size_t imageChannel = 1;
-			cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-			image.empty();
-		}		
-	}
-	//kernel image
-	for (int kn = 0; kn < kernelSize.number; kn++)
-	{
-		for (int kc = 0; kc < kernelSize.channels; kc++)
-		{
-			const float* imageData = kernelRawData + kn*kernelSize._3DSize() + kc*kernelSize._2DSize();
-			const size_t imageWidth = kernelSize.width;
-			const size_t imageStride = imageWidth;
-			const size_t imageHeight = kernelSize.height;
-			const size_t imageChannel = 1;
-			cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-			image.empty();
+			for (int pc = 0; pc < prevSize.channels; pc++)
+			{
+				const float* imageData = prevData + pn*prevSize._3DSize() + pc*prevSize._2DSize();
+				const size_t imageWidth = prevSize.width;
+				const size_t imageStride = imageWidth;
+				const size_t imageHeight = prevSize.height;
+				const size_t imageChannel = 1;
+				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
+				image.empty();
+			}		
 		}
-	}
-	//output image
-	for (int nn = 0; nn < nextDataSize.number; nn++)
-	{
-		for (int nc = 0; nc < nextDataSize.channels; nc++)
+		//kernel image
+		for (int kn = 0; kn < kernelSize.number; kn++)
 		{
-			const float* imageData = nextRawData + nn*nextDataSize._3DSize() + nc*nextDataSize._2DSize();
-			const size_t imageWidth = nextDataSize.width;
-			const size_t imageStride = imageWidth;
-			const size_t imageHeight = nextDataSize.height;
-			const size_t imageChannel = 1;
-			cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-			image.empty();
+			for (int kc = 0; kc < kernelSize.channels; kc++)
+			{
+				const float* imageData = kernelData + kn*kernelSize._3DSize() + kc*kernelSize._2DSize();
+				const size_t imageWidth = kernelSize.width;
+				const size_t imageStride = imageWidth;
+				const size_t imageHeight = kernelSize.height;
+				const size_t imageChannel = 1;
+				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
+				image.empty();
+			}
 		}
-	}
+		//output image
+		for (int nn = 0; nn < nextSize.number; nn++)
+		{
+			for (int nc = 0; nc < nextSize.channels; nc++)
+			{
+				const float* imageData = nextData + nn*nextSize._3DSize() + nc*nextSize._2DSize();
+				const size_t imageWidth = nextSize.width;
+				const size_t imageStride = imageWidth;
+				const size_t imageHeight = nextSize.height;
+				const size_t imageChannel = 1;
+				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
+				image.empty();
+			}
+		}
 #endif //WITH_OPENCV_DEBUG
-}
-void EasyCNN::ConvolutionLayer::backward(std::shared_ptr<DataBucket> prevDataBucket, const std::shared_ptr<DataBucket> nextDataBucket, std::shared_ptr<DataBucket>& nextDiffBucket)
-{
-	easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
-	const DataSize prevDataSize = prevDataBucket->getSize();
-	const DataSize nextDataSize = nextDataBucket->getSize();
-	const DataSize nextDiffSize = nextDiffBucket->getSize();
-	const ParamSize biasSize = biasData->getSize();
-	const float* prevData = prevDataBucket->getData().get();
-	const float* nextData = nextDataBucket->getData().get();
-	const float* nextDiff = nextDiffBucket->getData().get();
-	float *kernel = kernelData->getData().get();
-	float *bias = biasData->getData().get();
-
-	//////////////////////////////////////////////////////////////////////////
-	//update prevDiff data
-	const DataSize prevDiffSize(prevDataSize.number, prevDataSize.channels, prevDataSize.height, prevDataSize.width);
-	std::shared_ptr<DataBucket> prevDiffBucket(std::make_shared<DataBucket>(prevDiffSize));
-	prevDiffBucket->fillData(0.0f);
-	float* prevDiff = prevDiffBucket->getData().get();
-	//calculate current inner diff
-	for (size_t pn = 0; pn < prevDataSize.number; pn++)
+	}
+	void ConvolutionLayer::backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,
+		std::shared_ptr<DataBucket>& prevDiff, const std::shared_ptr<DataBucket>& nextDiff)
 	{
-		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
-		{
-			for (size_t nh = 0; nh < nextDataSize.height; nh++)
+		easyAssert(getPhase() == Phase::Train, "backward only in train phase.")
+		const DataSize prevSize = prev->getSize();
+		const DataSize nextSize = next->getSize();
+		const DataSize prevDiffSize = prevDiff->getSize();
+		const DataSize nextDiffSize = nextDiff->getSize();
+		const ParamSize biasSize = bias->getSize();
+		const float* prevData = prev->getData().get();
+		const float* nextData = next->getData().get();
+		float* prevDiffData = prevDiff->getData().get();
+		const float* nextDiffData = nextDiff->getData().get();
+		float *kernelData = kernel->getData().get();
+		float *biasData = bias->getData().get();
+		easyAssert(prevDiffSize == prevSize, "size of prevDiff and size of prev must be equals");
+
+		//////////////////////////////////////////////////////////////////////////
+		//update prevDiff
+		prevDiff->fillData(0.0f);
+		//calculate current inner diff
+		auto calc_diff_func = [&](const size_t start_nn, const size_t stop_nn){
+			for (size_t nn = start_nn; nn < stop_nn; nn++)
 			{
-				for (size_t nw = 0; nw < nextDataSize.width; nw++)
+				for (size_t nc = 0; nc < nextSize.channels; nc++)
 				{
-					const size_t inStartX = nw*widthStep;
-					const size_t inStartY = nh*heightStep;
-					const size_t nextDiffIdx = nextDataSize.getIndex(pn,nc, nh, nw);
-					const size_t kn = nc;
-					for (size_t kc = 0; kc < kernelSize.channels; kc++)
+					for (size_t nh = 0; nh < nextSize.height; nh++)
 					{
-						for (size_t kh = 0; kh < kernelSize.height; kh++)
+						for (size_t nw = 0; nw < nextSize.width; nw++)
 						{
-							for (size_t kw = 0; kw < kernelSize.width;kw++)
+							const size_t inStartX = nw*widthStep;
+							const size_t inStartY = nh*heightStep;
+							const size_t nextDiffIdx = nextSize.getIndex(nn, nc, nh, nw);
+							const size_t kn = nc;
+							for (size_t kc = 0; kc < kernelSize.channels; kc++)
 							{
-								const size_t prevDiffIdx = prevDiffSize.getIndex(pn, kc, inStartY + kh, inStartX + kw);
-								const size_t kernelIdx = kernelSize.getIndex(kn, kc, kh, kw);
-								prevDiff[prevDiffIdx] += kernel[kernelIdx] * nextDiff[nextDiffIdx];
+								for (size_t kh = 0; kh < kernelSize.height; kh++)
+								{
+									for (size_t kw = 0; kw < kernelSize.width; kw++)
+									{
+										const size_t prevDiffIdx = prevDiffSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
+										const size_t kernelIdx = kernelSize.getIndex(kn, kc, kh, kw);
+										prevDiffData[prevDiffIdx] += kernelData[kernelIdx] * nextDiffData[nextDiffIdx];
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		};
+#if WITH_PARALLEL_SUPPORT
+		if (thread_pool->size() <= 1 || nextSize.number <= 1)
+		{
+			calc_diff_func(0, nextSize.number);
+		}
+		else
+		{
+			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
+			size_t payload_per_thread = nextSize.number / thread_pool->size();
+			std::vector<std::future<void>> futures;
+			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
+			{
+				const size_t start = i*payload_per_thread;
+				const size_t stop = std::min((i + 1)*payload_per_thread, nextSize.number);
+				futures.push_back(thread_pool->enqueue(calc_diff_func, start, stop));
+				if (stop >= nextSize.number)
+				{
+					break;
+				}
+			}
+			for (size_t i = 0; i < futures.size(); i++)
+			{
+				futures[i].wait();
+			}
+		}
+#else
+		calc_diff_func(0, nextSize.number);
+#endif //WITH_PARALLEL_SUPPORT
+
+		//////////////////////////////////////////////////////////////////////////
+		//update this layer's param
+		const ParamSize kernelGradientSize(kernelSize);
+		kernelGradient->fillData(0.0f);
+		float* kernelGradientData = kernelGradient->getData().get();
+		//update kernel gradient
+		for (size_t nn = 0; nn < nextSize.number; nn++)
+		{
+			for (size_t nc = 0; nc < nextSize.channels; nc++)
+			{
+				for (size_t nh = 0; nh < nextSize.height; nh++)
+				{
+					for (size_t nw = 0; nw < nextSize.width; nw++)
+					{
+						const size_t inStartX = nw*widthStep;
+						const size_t inStartY = nh*heightStep;
+						const size_t nextDiffIdx = nextSize.getIndex(nn, nc, nh, nw);
+						const size_t kn = nc;
+						for (size_t kc = 0; kc < kernelSize.channels; kc++)
+						{
+							for (size_t kh = 0; kh < kernelSize.height; kh++)
+							{
+								for (size_t kw = 0; kw < kernelSize.width; kw++)
+								{
+									const size_t kernelGradientIdx = kernelGradientSize.getIndex(kn, kc, kh, kw);
+									const size_t prevIdx = prevSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
+									kernelGradientData[kernelGradientIdx] += prevData[prevIdx] * nextDiffData[nextDiffIdx];
+								}
 							}
 						}
 					}
 				}
 			}
 		}
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	//update this layer's param
-	const ParamSize kernelDiffSize(kernelSize);	
-	kernelDiffData->fillData(0.0f);
-	float* kernelDiff = kernelDiffData->getData().get();
-	//update kernel
-	for (size_t pn = 0; pn < prevDataSize.number; pn++)
-	{
-		for (size_t nc = 0; nc < nextDataSize.channels; nc++)
+		//div by batch size
+		for (size_t i = 0; i < kernelSize.totalSize(); i++)
 		{
-			for (size_t nh = 0; nh < nextDataSize.height; nh++)
+			kernelGradientData[i] /= nextSize.number;
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		//update bias gradient
+		biasGradient->fillData(0.0f);
+		float* biasGradientData = biasGradient->getData().get();
+		for (size_t nn = 0; nn < nextDiffSize.number; nn++)
+		{
+			for (size_t nc = 0; nc < nextDiffSize.channels; nc++)
 			{
-				for (size_t nw = 0; nw < nextDataSize.width; nw++)
+				const size_t biasGradientIdx = nc;
+				for (size_t nh = 0; nh < nextDiffSize.height; nh++)
 				{
-					const size_t inStartX = nw*widthStep;
-					const size_t inStartY = nh*heightStep;
-					const size_t nextDiffIdx = nextDataSize.getIndex(pn,nc, nh, nw);
-					const size_t kn = nc;
-					for (size_t kc = 0; kc < kernelSize.channels; kc++)
+					for (size_t nw = 0; nw < nextDiffSize.width; nw++)
 					{
-						for (size_t kh = 0; kh < kernelSize.height; kh++)
-						{
-							for (size_t kw = 0; kw < kernelSize.width; kw++)
-							{
-								const size_t kernelDiffIdx = kernelDiffSize.getIndex(kn, kc, kh, kw);
-								const size_t prevDataIdx = prevDataSize.getIndex(pn, kc, inStartY + kh, inStartX + kw);
-								kernelDiff[kernelDiffIdx] += prevData[prevDataIdx] * nextDiff[nextDiffIdx];
-							}
-						}
+						const size_t nextDiffIdx = nextDiffSize.getIndex(nn, nc, nh, nw);
+						biasGradientData[biasGradientIdx] += 1.0f*nextDiffData[nextDiffIdx];
 					}
 				}
 			}
 		}
-	}
-	//div by batch size
-	for (size_t kernelIdx = 0; kernelIdx < kernelSize.totalSize();kernelIdx++)
-	{		
-		kernelDiff[kernelIdx] /= nextDataSize.number;
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	//update bias
-	const ParamSize biasDiffSize(biasSize);
-	biasDiffData->fillData(0.0f);
-	float* biasDiff = biasDiffData->getData().get();
-	for (size_t pn = 0; pn < prevDataSize.number; pn++)
-	{
-		for (size_t nc = 0; nc < nextDiffSize.channels; nc++)
+		//div by batch size
+		for (size_t i = 0; i < biasSize.totalSize(); i++)
 		{
-			const size_t biasDiffIdx = nc;
-			for (size_t nh = 0; nh < nextDiffSize.height; nh++)
-			{
-				for (size_t nw = 0; nw < nextDiffSize.width; nw++)
-				{
-					const size_t nextDiffIdx = nextDiffSize.getIndex(pn,nc,nh,nw);
-					biasDiff[biasDiffIdx] += 1.0f*nextDiff[nextDiffIdx];
-				}
-			}
+			biasGradientData[i] /= nextSize.number;
 		}
 	}
-	//apply change
-	for (size_t biasIdx = 0; biasIdx < biasSize.totalSize(); biasIdx++)
-	{
-		biasDiff[biasIdx] /= nextDataSize.number;
-	}
-
-	//////////////////////////////////////////////////////////////////////////
-	nextDiffBucket = prevDiffBucket;
-}
+}//namespace

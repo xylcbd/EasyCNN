@@ -9,27 +9,27 @@ namespace EasyCNN
 	class LossFunctor
 	{
 	public:
-		virtual float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
-			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket) = 0;
-		virtual std::shared_ptr<EasyCNN::DataBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
-			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket) = 0;
+		virtual float getLoss(const std::shared_ptr<DataBucket> labelDataBucket,
+			const std::shared_ptr<DataBucket> outputDataBucket) = 0;
+		virtual void getDiff(const std::shared_ptr<DataBucket> labelDataBucket,
+			const std::shared_ptr<DataBucket> outputDataBucket, std::shared_ptr<DataBucket>& diff) = 0;
 	};
 
 	class CrossEntropyFunctor : public LossFunctor
 	{
 	public:
-		virtual float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
-			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
-		virtual std::shared_ptr<EasyCNN::DataBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
-			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
+		virtual float getLoss(const std::shared_ptr<DataBucket> labelDataBucket,
+			const std::shared_ptr<DataBucket> outputDataBucket);
+		virtual void getDiff(const std::shared_ptr<DataBucket> labelDataBucket,
+			const std::shared_ptr<DataBucket> outputDataBucket, std::shared_ptr<DataBucket>& diff);
 	};
 
 	class MSEFunctor : public LossFunctor
 	{
 	public:
-		virtual float getLoss(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
-			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
-		virtual std::shared_ptr<EasyCNN::DataBucket> getDiff(const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket,
-			const std::shared_ptr<EasyCNN::DataBucket> outputDataBucket);
+		virtual float getLoss(const std::shared_ptr<DataBucket> labelDataBucket,
+			const std::shared_ptr<DataBucket> outputDataBucket);
+		virtual void getDiff(const std::shared_ptr<DataBucket> labelDataBucket,
+			const std::shared_ptr<DataBucket> outputDataBucket, std::shared_ptr<DataBucket>& diff);
 	};
 }
