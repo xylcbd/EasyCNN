@@ -142,40 +142,10 @@ namespace EasyCNN
 		float* nextData = next->getData().get();
 
 		auto conv_func = [&](const size_t nnStart, const size_t nnStop){
-			for (size_t nn = nnStart; nn < nnStop; nn++)
-			{
-				for (size_t nc = 0; nc < nextSize.channels; nc++)
-				{
-					for (size_t nh = 0; nh < nextSize.height; nh++)
-					{
-						for (size_t nw = 0; nw < nextSize.width; nw++)
-						{
-							const size_t inStartX = nw*widthStep;
-							const size_t inStartY = nh*heightStep;
-							float sum = 0;
-							for (size_t kc = 0; kc < kernelSize.channels; kc++)
-							{
-								for (size_t kh = 0; kh < kernelSize.height; kh++)
-								{
-									for (size_t kw = 0; kw < kernelSize.width; kw++)
-									{
-										const size_t prevIdx = prevSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
-										const size_t kernelIdx = kernelSize.getIndex(nc, kc, kh, kw);
-										sum += prevData[prevIdx] * kernelData[kernelIdx];
-									}
-								}
-							}
-							if (enabledBias)
-							{
-								const size_t biasIdx = nc;
-								sum += biasData[biasIdx];
-							}
-							const size_t nextIdx = nextSize.getIndex(nn, nc, nh, nw);
-							nextData[nextIdx] = sum;
-						}
-					}
-				}
-			}
+			convolution2d(prevData + nnStart*prevSize._3DSize(), kernelData, biasData, nextData + nnStart*nextSize._3DSize(),
+				nnStop-nnStart, prevSize.channels, prevSize.width, prevSize.height, 
+				kernelSize.number,kernelSize.width, kernelSize.height, widthStep, heightStep,
+				nextSize.width, nextSize.height);
 		};
 #if WITH_PARALLEL_SUPPORT
 		if (thread_pool->size() <= 1 || nextSize.number <= 1)
@@ -366,10 +336,7 @@ namespace EasyCNN
 			}
 		}
 		//div by batch size
-		for (size_t i = 0; i < kernelSize.totalSize(); i++)
-		{
-			kernelGradientData[i] /= nextSize.number;
-		}
+		div_inplace(kernelGradientData, (float)nextSize.number, kernelSize.totalSize());		
 
 		//////////////////////////////////////////////////////////////////////////
 		//update bias gradient
@@ -391,9 +358,6 @@ namespace EasyCNN
 			}
 		}
 		//div by batch size
-		for (size_t i = 0; i < biasSize.totalSize(); i++)
-		{
-			biasGradientData[i] /= nextSize.number;
-		}
+		div_inplace(biasGradientData, (float)nextSize.number, biasSize.totalSize());
 	}
 }//namespace

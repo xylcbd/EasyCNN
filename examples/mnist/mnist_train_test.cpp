@@ -220,7 +220,7 @@ static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,co
 	std::shared_ptr<EasyCNN::FullconnectLayer> _6_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
 	_6_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, classes, 1, 1), true);
 	network.addayer(_6_fullconnectLayer);
-	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+
 	//soft max layer 6
 	std::shared_ptr<EasyCNN::SoftmaxLayer> _7_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
 	network.addayer(_7_softmaxLayer);
@@ -252,7 +252,7 @@ static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, c
 	std::shared_ptr<EasyCNN::FullconnectLayer> _3_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
 	_3_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, classes, 1, 1), true);
 	network.addayer(_3_fullconnectLayer);
-	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+
 	//soft max layer
 	std::shared_ptr<EasyCNN::SoftmaxLayer> _4_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
 	network.addayer(_4_softmaxLayer);
@@ -332,7 +332,7 @@ static void train(const std::string& mnist_train_images_file,
 	const float minLearningRate = 0.00001f;
 	const size_t testAfterBatches = 200;
 	const size_t maxBatches = 10000;
-	const size_t max_epoch = 1;
+	const size_t max_epoch = 5;
 	const size_t batch = 64;
 	const size_t channels = images[0].channels;
 	const size_t width = images[0].width;

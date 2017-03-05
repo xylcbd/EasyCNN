@@ -139,26 +139,7 @@ namespace EasyCNN
 		const float* weightData = weight->getData().get();
 		const float* biasData = enabledBias ? bias->getData().get() : nullptr;
 		auto fc_func = [&](const size_t nnStart, const size_t nnStop){
-			for (size_t nn = nnStart; nn < nnStop; nn++)
-			{
-				for (size_t nc = 0; nc < nextSize.channels; nc++)
-				{
-					float sum = 0;
-					for (size_t pidx = 0; pidx < prevSize._3DSize(); pidx++)
-					{
-						const size_t prevIdx = nn * prevSize._3DSize() + pidx;
-						const size_t weightIdx = nc * prevSize._3DSize() + pidx;
-						sum += prevData[prevIdx] * weightData[weightIdx];
-					}
-					if (enabledBias)
-					{
-						const size_t biasIdx = nc;
-						sum += biasData[biasIdx];
-					}
-					const size_t nextIdx = nn*nextSize._3DSize() + nc;
-					nextData[nextIdx] = sum;
-				}//oc
-			}//on
+			fullconnect(prevData + nnStart * prevSize._3DSize(), weightData, biasData, nextData + nnStart * nextSize._3DSize(), nnStop-nnStart, prevSize._3DSize(), nextSize._3DSize());
 		};
 #if WITH_PARALLEL_SUPPORT
 		if (thread_pool->size() <= 1 || nextSize.number <= 1)
@@ -281,10 +262,7 @@ namespace EasyCNN
 			}
 		}
 		//div by batch size
-		for (size_t i = 0; i < weightSize.totalSize(); i++)
-		{
-			weightGradientData[i] /= nextSize.number;
-		}
+		div_inplace(weightGradientData, (float)nextSize.number, weightSize.totalSize());
 
 		//////////////////////////////////////////////////////////////////////////
 		//update bias
@@ -301,10 +279,7 @@ namespace EasyCNN
 				}
 			}
 			//div by batch size
-			for (size_t i = 0; i < biasSize.totalSize(); i++)
-			{
-				biasGradientData[i] /= nextSize.number;
-			}
+			div_inplace(biasGradientData, (float)nextSize.number, biasSize.totalSize());
 		}
 	}
 }//namespace

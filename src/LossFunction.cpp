@@ -1,5 +1,6 @@
 #include <cmath>
 #include "EasyCNN/LossFunction.h"
+#include "EasyCNN/MathFunctions.h"
 
 namespace EasyCNN
 {
@@ -14,20 +15,16 @@ namespace EasyCNN
 		float loss = 0.0f;
 		for (size_t i = 0; i < outputSize.totalSize(); i++)
 		{
-			loss -= labelData[i] * std::log(outputData[i]) / outputSize.number;
+			loss -= labelData[i] * std::log(outputData[i]);
 		}
-		return loss;
+		return loss / (float)outputSize.number;
 	}
 	void CrossEntropyFunctor::getDiff(const std::shared_ptr<DataBucket> labelDataBucket,
 		const std::shared_ptr<DataBucket> outputDataBucket, std::shared_ptr<DataBucket>& diff)
 	{
 		const DataSize labelSize = labelDataBucket->getSize();
 		const DataSize outputSize = outputDataBucket->getSize();
-		const DataSize diffSize(outputSize.number, outputSize.channels, outputSize.height, outputSize.width);
-		if (diff->getSize() != diffSize)
-		{
-			diff.reset(new DataBucket(diffSize));
-		}
+		const DataSize diffSize = diff->getSize();
 		diff->fillData(0.0f);
 		for (size_t on = 0; on < outputSize.number; on++)
 		{
@@ -54,20 +51,16 @@ namespace EasyCNN
 		float loss = 0.0f;
 		for (size_t i = 0; i < outputSize.totalSize(); i++)
 		{
-			loss += (outputData[i] - labelData[i])*(outputData[i] - labelData[i]) / outputSize.number;
+			loss += (outputData[i] - labelData[i])*(outputData[i] - labelData[i]);
 		}
-		return loss;
+		return loss/(float)outputSize.number;
 	}
 	void MSEFunctor::getDiff(const std::shared_ptr<DataBucket> labelDataBucket,
 		const std::shared_ptr<DataBucket> outputDataBucket, std::shared_ptr<DataBucket>& diff)
 	{
 		const DataSize labelSize = labelDataBucket->getSize();
 		const DataSize outputSize = outputDataBucket->getSize();
-		const DataSize diffSize(outputSize.number, outputSize.channels, outputSize.height, outputSize.width);
-		if (diff->getSize() != diffSize)
-		{
-			diff.reset(new DataBucket(diffSize));
-		}
+		const DataSize diffSize = diff->getSize();
 		diff->fillData(0.0f);
 		for (size_t on = 0; on < outputSize.number; on++)
 		{
