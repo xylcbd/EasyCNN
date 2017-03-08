@@ -348,6 +348,7 @@ static void train(const std::string& mnist_train_images_file,
 
 	float val_accuracy = 0.0f;
 	float train_loss = 0.0f;
+	int train_batches = 0;
 	float val_loss = 0.0f;
 
 	//train
@@ -367,11 +368,16 @@ static void train(const std::string& mnist_train_images_file,
 				break;
 			}
 			train_loss += network.trainBatch(inputDataBucket,labelDataBucket);
+			train_batches++;
 			if (batchIdx > 0 && batchIdx % testAfterBatches == 0)
 			{
+				train_loss /= train_batches;
 				std::tie(val_accuracy, val_loss) = test(network, 128, validate_images, validate_labels);
 				EasyCNN::logCritical("sample : %d/%d , learningRate : %f , train_loss : %f , val_loss : %f , val_accuracy : %.4f%%", 
-					batchIdx*batch, train_images.size(), learningRate, train_loss / batchIdx, val_loss, val_accuracy*100.0f);
+					batchIdx*batch, train_images.size(), learningRate, train_loss, val_loss, val_accuracy*100.0f);
+
+				train_loss = 0.0f;
+				train_batches = 0;
 
 				//update learning rate
 				learningRate = std::max(learningRate - 0.4f*get_base(learningRate), minLearningRate);
