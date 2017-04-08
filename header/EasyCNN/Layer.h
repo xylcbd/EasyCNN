@@ -20,6 +20,9 @@ namespace EasyCNN
 	class Layer
 	{
 		FRIEND_WITH_NETWORK
+	public:
+		inline DataSize getInputBucketSize() const{ return inputSize; }
+		inline DataSize getOutputBucketSize() const{ return outputSize; }
 	protected:
 		virtual std::string getLayerType() const = 0;
 		virtual std::string serializeToString() const{ return getLayerType(); };
@@ -35,10 +38,8 @@ namespace EasyCNN
 		//params
 		inline std::vector<std::shared_ptr<ParamBucket>> getParamData() const { return params; }
 		//size
-		inline void setInputBucketSize(const DataSize size){ inputSize = size; }
-		inline DataSize getInputBucketSize() const{ return inputSize; }
-		inline void setOutpuBuckerSize(const DataSize size){ outputSize = size; }
-		inline DataSize getOutputBucketSize() const{ return outputSize; }
+		inline void setInputBucketSize(const DataSize size){ inputSize = size; }		
+		inline void setOutpuBuckerSize(const DataSize size){ outputSize = size; }		
 		//solve params
 		virtual void solveInnerParams(){ outputSize = inputSize; }
 		//data flow		

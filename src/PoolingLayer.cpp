@@ -72,7 +72,7 @@ namespace EasyCNN
 		poolingKernelSize.number = 1;
 		poolingKernelSize.channels = inputSize.channels;
 		easyAssert(inputSize.number && poolingKernelSize.number && inputSize.channels == poolingKernelSize.channels &&
-			inputSize.width > poolingKernelSize.width && inputSize.height > poolingKernelSize.height,
+			inputSize.width >= poolingKernelSize.width && inputSize.height >= poolingKernelSize.height,
 			"poolingKernelSize parameters invalidate.");
 		DataSize outputSize;
 		outputSize.number = inputSize.number;
@@ -193,11 +193,15 @@ namespace EasyCNN
 		const DataSize nextSize = next->getSize();
 		const DataSize prevDiffSize = prevDiff->getSize();
 		const DataSize nextDiffSize = nextDiff->getSize();
-		easyAssert(maxIdxes->getSize()._3DSize() == nextSize._3DSize(), "idx size must equals with next data.");
 		easyAssert(prevDiffSize == prevSize, "size of prevDiff and size of prev must be equals");
 
 		//update prevDiff
-		const float* maxIdxesData = maxIdxes->getData().get();
+		const float* maxIdxesData = nullptr;
+		if (poolingType == PoolingType::MaxPooling)
+		{
+			easyAssert(maxIdxes->getSize()._3DSize() == nextSize._3DSize(), "idx size must equals with next data.");
+			maxIdxesData = maxIdxes->getData().get();
+		}
 		prevDiff->fillData(0.0f);
 		//calculate current inner diff 
 		//none
