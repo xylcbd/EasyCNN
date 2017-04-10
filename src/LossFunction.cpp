@@ -15,9 +15,10 @@ namespace EasyCNN
 		float loss = 0.0f;
 		for (size_t i = 0; i < outputSize.totalSize(); i++)
 		{
-			loss -= labelData[i] * std::log(outputData[i]);
-		}
-		return loss / (float)outputSize.number;
+			const float curLoss = -labelData[i] * std::log(outputData[i]);
+			loss = moving_average(loss, i+1, curLoss);
+		}		
+		return loss*outputSize._3DSize();
 	}
 	void CrossEntropyFunctor::getDiff(const std::shared_ptr<DataBucket> labelDataBucket,
 		const std::shared_ptr<DataBucket> outputDataBucket, std::shared_ptr<DataBucket>& diff)
@@ -51,9 +52,10 @@ namespace EasyCNN
 		float loss = 0.0f;
 		for (size_t i = 0; i < outputSize.totalSize(); i++)
 		{
-			loss += (outputData[i] - labelData[i])*(outputData[i] - labelData[i]);
+			const float curLoss = (outputData[i] - labelData[i])*(outputData[i] - labelData[i]);
+			loss = moving_average(loss, i+1, curLoss);
 		}
-		return loss/(float)outputSize.number;
+		return loss*outputSize._3DSize();
 	}
 	void MSEFunctor::getDiff(const std::shared_ptr<DataBucket> labelDataBucket,
 		const std::shared_ptr<DataBucket> outputDataBucket, std::shared_ptr<DataBucket>& diff)

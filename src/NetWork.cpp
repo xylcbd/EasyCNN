@@ -157,6 +157,10 @@ namespace EasyCNN
 		for (size_t i = 0; i < layers.size(); i++)
 		{
 			logVerbose("NetWork layer[%d](%s) forward begin.", i, layers[i]->getLayerType().c_str());
+			if (i < layers.size() - 1)
+			{
+				dataBuckets[i + 1]->fillData(0.0f);
+			}
 			layers[i]->forward(dataBuckets[i], dataBuckets[i + 1]);
 			logVerbose("NetWork layer[%d](%s) forward end.", i, layers[i]->getLayerType().c_str());
 		}
@@ -195,12 +199,20 @@ namespace EasyCNN
 			diffBuckets[diffBuckets.size() - 1].reset(new DataBucket(labelDataBucket->getSize()));
 		}
 
-		lossFunctor->getDiff(labelDataBucket, lastOutputData, diffBuckets[diffBuckets.size()-1]);
-
+		const bool lastWithLoss = layers[layers.size() - 1]->getLayerType() == SoftmaxWithLossLayer::layerType;
+		if (lastWithLoss)
+		{
+			diffBuckets[diffBuckets.size() - 1]->fillData(1.0f);
+		}
+		else
+		{
+			lossFunctor->getDiff(labelDataBucket, lastOutputData, diffBuckets[diffBuckets.size() - 1]);
+		}
 		//other layer backward
 		for (int i = (int)(layers.size()) - 1; i >= 0; i--)
 		{
 			logVerbose("NetWork layer[%d](%s) backward begin.", i, layers[i]->getLayerType().c_str());
+			diffBuckets[i]->fillData(0.0f);
 			layers[i]->backward(dataBuckets[i], dataBuckets[i + 1], diffBuckets[i], diffBuckets[i+1]);
 			logVerbose("NetWork layer[%d](%s) backward end.", i, layers[i]->getLayerType().c_str());
 		}

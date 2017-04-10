@@ -15,12 +15,35 @@ namespace EasyCNN
 			data[i] = dist(engine);
 		}
 	}
+	void uniform_distribution_init(float* data, const size_t size, const float low_value, const float high_deviation)
+	{
+		std::random_device rd;
+		std::mt19937 engine(rd());
+		std::uniform_real_distribution<float> dist(low_value, high_deviation);
+		for (size_t i = 0; i < size; i++)
+		{
+			data[i] = dist(engine);
+		}
+	}
 	void const_distribution_init(float* data, const size_t size, const float const_value)
 	{
 		for (size_t i = 0; i < size; i++)
 		{
 			data[i] = const_value;
 		}
+	}
+	void xavier_init(float* data, const size_t size, const size_t fan_in, const size_t fan_out)
+	{
+		const float weight_base = std::sqrt(6.0f / float(fan_in + fan_out));
+		uniform_distribution_init(data, size, -weight_base, weight_base);
+	}
+
+
+	float moving_average(float avg, const int acc_number, float value)
+	{
+		avg -= avg / acc_number;
+		avg += value / acc_number;
+		return avg;
 	}
 
 	void mul(const float* a, const float* b, float* c, const size_t len)

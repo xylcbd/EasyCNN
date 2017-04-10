@@ -139,7 +139,8 @@ static std::pair<float,float> test(EasyCNN::NetWork& network, const size_t batch
 		const std::shared_ptr<EasyCNN::DataBucket> probDataBucket = network.testBatch(inputDataBucket);
 
 		//get loss
-		loss += network.getLoss(labelDataBucket, probDataBucket);
+		const float batch_loss = network.getLoss(labelDataBucket, probDataBucket);
+		loss = EasyCNN::moving_average(loss, batchs + 1, batch_loss);
 
 		const size_t labelSize = probDataBucket->getSize()._3DSize();
 		const float* probData = probDataBucket->getData().get();
@@ -153,8 +154,7 @@ static std::pair<float,float> test(EasyCNN::NetWork& network, const size_t batch
 			}
 		}
 	}
-	const float accuracy = (float)correctCount / (float)test_labels.size();
-	loss /= (float)batchs;
+	const float accuracy = (float)correctCount / (float)test_labels.size();	
 	return std::pair<float, float>(accuracy,loss);
 }
 static float getAccuracy(const std::shared_ptr<EasyCNN::DataBucket> probDataBucket, const std::shared_ptr<EasyCNN::DataBucket> labelDataBucket)
@@ -198,7 +198,6 @@ static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,co
 	std::shared_ptr<EasyCNN::PoolingLayer> _2_poolingLayer(std::make_shared<EasyCNN::PoolingLayer>());
 	_2_poolingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 6, 2, 2), 2, 2);
 	network.addayer(_2_poolingLayer);
-	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//convolution layer 3
 	std::shared_ptr<EasyCNN::ConvolutionLayer> _3_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
 	_3_convLayer->setParamaters(EasyCNN::ParamSize(16, 6, 5, 5), 1, 1, true);
@@ -208,7 +207,6 @@ static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,co
 	std::shared_ptr<EasyCNN::PoolingLayer> _4_pooingLayer(std::make_shared<EasyCNN::PoolingLayer>());
 	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 16, 2, 2), 2, 2);
 	network.addayer(_4_pooingLayer);
-	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
 	//full connect layer 5
 	std::shared_ptr<EasyCNN::FullconnectLayer> _5_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
@@ -328,9 +326,9 @@ static void train(const std::string& mnist_train_images_file,
 	EasyCNN::logCritical("load training data done. train set's size is %d,validate set's size is %d", train_images.size(), validate_images.size());
 
 	float learningRate = 0.1f;
-	const float decayRate = 0.2f;
-	const float minLearningRate = 0.00001f;
-	const size_t testAfterBatches = 200;
+	const float decayRate = 0.9f;
+	const float minLearningRate = 0.01f;
+	const size_t testAfterBatches = 30;
 	const size_t maxBatches = 10000;
 	const size_t max_epoch = 5;
 	const size_t batch = 64;
@@ -367,11 +365,11 @@ static void train(const std::string& mnist_train_images_file,
 			{
 				break;
 			}
-			train_loss += network.trainBatch(inputDataBucket,labelDataBucket);
+			const float batch_loss = network.trainBatch(inputDataBucket,labelDataBucket);
+			train_loss = EasyCNN::moving_average(train_loss, train_batches + 1, batch_loss);
 			train_batches++;
 			if (batchIdx > 0 && batchIdx % testAfterBatches == 0)
 			{
-				train_loss /= train_batches;
 				std::tie(val_accuracy, val_loss) = test(network, 128, validate_images, validate_labels);
 				EasyCNN::logCritical("sample : %d/%d , learningRate : %f , train_loss : %f , val_loss : %f , val_accuracy : %.4f%%", 
 					batchIdx*batch, train_images.size(), learningRate, train_loss, val_loss, val_accuracy*100.0f);

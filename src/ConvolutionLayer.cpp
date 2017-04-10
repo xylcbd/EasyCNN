@@ -103,6 +103,11 @@ namespace EasyCNN
 		{
 			kernel.reset(new ParamBucket(kernelSize));
 			normal_distribution_init(kernel->getData().get(), kernel->getSize().totalSize(), 0.0f, 0.1f);
+			/*
+			const size_t fan_in = inputSize._2DSize();
+			const size_t fan_out = outputSize._2DSize();
+			xavier_init(kernel->getData().get(), kernel->getSize().totalSize(), fan_in, fan_out);
+			*/
 		}
 		if (kernelGradient.get() == nullptr)
 		{

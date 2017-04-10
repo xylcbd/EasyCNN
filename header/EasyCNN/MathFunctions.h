@@ -5,7 +5,11 @@ namespace EasyCNN
 	//all of these functions below is run on single thread, maybe they are SIMD optimized.
 
 	void normal_distribution_init(float* data, const size_t size, const float mean_value, const float standard_deviation);
+	void uniform_distribution_init(float* data, const size_t size, const float low_value, const float high_deviation);
 	void const_distribution_init(float* data, const size_t size, const float const_value);
+	void xavier_init(float* data, const size_t size, const size_t fan_in, const size_t fan_out);
+
+	float moving_average(float avg, const int acc_number, float value);
 
 	//c = a*b
 	void mul(const float* a, const float* b, float* c, const size_t len);

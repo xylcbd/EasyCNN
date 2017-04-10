@@ -101,6 +101,11 @@ namespace EasyCNN
 		{
 			weight.reset(new ParamBucket(ParamSize(1, inputSize._3DSize()*outputSize._3DSize(), 1, 1)));
 			normal_distribution_init(weight->getData().get(), weight->getSize().totalSize(), 0.0f, 0.1f);
+			/*
+			const size_t fan_in = inputSize._3DSize();
+			const size_t fan_out = outputSize._3DSize();
+			xavier_init(weight->getData().get(), weight->getSize().totalSize(), fan_in, fan_out);
+			*/
 		}
 		if (weightGradient.get() == nullptr)
 		{
@@ -135,7 +140,7 @@ namespace EasyCNN
 		const DataSize nextSize = next->getSize();
 
 		const float* prevData = prev->getData().get();
-		float* nextData = next->getData().get();
+		float* nextData = next->getData().get();		
 		const float* weightData = weight->getData().get();
 		const float* biasData = enabledBias ? bias->getData().get() : nullptr;
 		auto fc_func = [&](const size_t nnStart, const size_t nnStop){

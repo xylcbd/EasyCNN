@@ -15,6 +15,7 @@ namespace EasyCNN
 		virtual ~NetWork();
 	public:
 		//common
+		//loss of batch
 		float getLoss(const std::shared_ptr<DataBucket> labelDataBucket, const std::shared_ptr<DataBucket> outputDataBucket);
 		//test only!
 		bool loadModel(const std::string& modelFile);
