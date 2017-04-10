@@ -199,15 +199,7 @@ namespace EasyCNN
 			diffBuckets[diffBuckets.size() - 1].reset(new DataBucket(labelDataBucket->getSize()));
 		}
 
-		const bool lastWithLoss = layers[layers.size() - 1]->getLayerType() == SoftmaxWithLossLayer::layerType;
-		if (lastWithLoss)
-		{
-			diffBuckets[diffBuckets.size() - 1]->fillData(1.0f);
-		}
-		else
-		{
-			lossFunctor->getDiff(labelDataBucket, lastOutputData, diffBuckets[diffBuckets.size() - 1]);
-		}
+		lossFunctor->getDiff(labelDataBucket, lastOutputData, diffBuckets[diffBuckets.size() - 1]);		
 		//other layer backward
 		for (int i = (int)(layers.size()) - 1; i >= 0; i--)
 		{
