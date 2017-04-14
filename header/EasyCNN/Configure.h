@@ -2,6 +2,7 @@
 
 #define WITH_OPENCV_DEBUG 0
 #define WITH_PARALLEL_SUPPORT 1
+#define WITH_ENCRYPT_MODEL 0
 
 #if WITH_PARALLEL_SUPPORT
 #include "EasyCNN/ThreadPool.h"

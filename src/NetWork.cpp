@@ -48,18 +48,6 @@ namespace EasyCNN
 		}
 		return lossFunctor->getLoss(labelDataBucket, outputDataBucket);
 	}
-	std::string NetWork::serializeToString() const
-	{
-		const std::string spliter = " ";
-		std::stringstream ss;
-		const auto inputSize = dataBuckets[0]->getSize();
-		ss << inputSize.channels << spliter << inputSize.width << spliter << inputSize.height << spliter;
-		for (const auto& layer : layers)
-		{
-			ss << layer->getLayerType() << spliter;
-		}
-		return ss.str();
-	}
 	std::shared_ptr<Layer> NetWork::createLayerByType(const std::string layerType)
 	{
 		if (layerType == InputLayer::layerType)
@@ -109,29 +97,12 @@ namespace EasyCNN
 			return nullptr;
 		}
 	}
-	std::vector<std::shared_ptr<Layer>> NetWork::serializeFromString(const std::string content)
+	std::string NetWork::lookaheadLayerType(const std::string line)
 	{
-		int number = 1;
-		int channels = 0;
-		int width = 0;
-		int height = 0;
-		std::stringstream ss(content);
-		ss >> channels >> width >> height;
-		setInputSize(DataSize(number, channels, width, height));
-		std::vector<std::shared_ptr<Layer>> tmpLayers;
-		while (!ss.eof())
-		{
-			std::string layerType;
-			ss >> layerType;
-			if (layerType.empty())
-			{
-				continue;
-			}
-			std::shared_ptr<Layer> layer = createLayerByType(layerType);
-			easyAssert(layer.get() != nullptr, "layer can't be null.");
-			tmpLayers.push_back(layer);
-		}
-		return tmpLayers;
+		std::stringstream ss(line);
+		std::string layerType = "unknown";
+		ss >> layerType;
+		return layerType;
 	}
 	std::shared_ptr<DataBucket> NetWork::forward(const std::shared_ptr<DataBucket> inputDataBucket)
 	{
@@ -235,13 +206,29 @@ namespace EasyCNN
 		//network param
 		std::string line;
 		std::getline(ifs, line);
-		line = decrypt(line);
-		std::vector<std::shared_ptr<Layer>> tmpLayers = this->serializeFromString(line);
+		line = decrypt(line);		
+		//get Input
+		{
+			const std::string layerType = lookaheadLayerType(line);
+			easyAssert(layerType == InputLayer::layerType, "The first layer must be InputLayer!");
+			std::shared_ptr<Layer> layer = createLayerByType(layerType);
+			easyAssert(layer.get() != nullptr, "layer can't be null.");
+			layer->serializeFromString(line);
+			setInputSize(layer->getInputBucketSize());
+			addayer(layer);
+		}
 		//layers' param
-		for (auto& layer : tmpLayers)
+		while (!ifs.eof())
 		{
 			std::getline(ifs, line);
-			line = decrypt(line);
+			line = decrypt(line);		
+			if (line.size() <= 2)
+			{
+				continue;
+			}
+			const std::string layerType = lookaheadLayerType(line);
+			std::shared_ptr<Layer> layer = createLayerByType(layerType);
+			easyAssert(layer.get() != nullptr, "layer can't be null.");		
 			//init input size
 			const std::shared_ptr<DataBucket> prev = dataBuckets[dataBuckets.size() - 1];
 			easyAssert(prev.get() != nullptr, "previous bucket is null.");
@@ -323,8 +310,6 @@ namespace EasyCNN
 		{
 			return false;
 		}
-		//network param
-		ofs << encrypt(this->serializeToString()) + "\n";
 		//layers' param
 		for (const auto& layer : layers)
 		{
@@ -336,15 +321,20 @@ namespace EasyCNN
 	//toy crypt only now! you can custom it.
 	std::string NetWork::encrypt(const std::string& content)
 	{
+#if WITH_ENCRYPT_MODEL
 		std::string message = content;
 		for (size_t i = 0; i < message.size(); i++)
 		{
 			message[i] -= 15;
 		}
 		return message;
+#else
+		return content;
+#endif
 	}
 	std::string NetWork::decrypt(const std::string& content)
 	{
+#if WITH_ENCRYPT_MODEL		
 		std::string message = content;
 		message = message.substr(0, message.size() - 1);
 		for (size_t i = 0; i < message.size(); i++)
@@ -352,5 +342,8 @@ namespace EasyCNN
 			message[i] += 15;
 		}
 		return message;
+#else
+		return content;
+#endif 
 	}
 }//namespace

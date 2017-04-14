@@ -14,9 +14,9 @@ namespace EasyCNN
 	public:
 		void setParamaters(const float _rate);
 	protected:
-		virtual std::string serializeToString() const override;
-		virtual void serializeFromString(const std::string content) override;
 		DECLARE_LAYER_TYPE;
+		virtual std::string serializeToString() const override;
+		virtual void serializeFromString(const std::string content) override;		
 		virtual std::string getLayerType() const override;
 		virtual void solveInnerParams() override;
 		virtual void forward(const std::shared_ptr<DataBucket> prev, std::shared_ptr<DataBucket> next) override;

@@ -32,9 +32,10 @@ namespace EasyCNN
 	void fullconnect(const float* input, const float* weight, const float* bias,float* output,
 		const size_t n, const size_t is, const size_t os);
 
-	//
+	//mode: 0-validate,1-same
 	void convolution2d(const float* input, const float* kernel, const float* bias, float* output,
 		const size_t in, const size_t ic, const size_t iw, const size_t ih,
 		const size_t kn, const size_t kw, const size_t kh, const size_t kws, const size_t khs,
-		const size_t ow, const size_t oh);
+		const size_t ow, const size_t oh,
+		const int mode);
 };

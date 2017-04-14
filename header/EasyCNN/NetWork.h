@@ -38,10 +38,9 @@ namespace EasyCNN
 	private:
 		//common
 		std::shared_ptr<DataBucket> forward(const std::shared_ptr<DataBucket> inputDataBucket);
-		float backward(const std::shared_ptr<DataBucket> labelDataBucket);
-		std::string serializeToString() const;
-		std::vector<std::shared_ptr<Layer>> serializeFromString(const std::string content);
+		float backward(const std::shared_ptr<DataBucket> labelDataBucket);		
 		std::shared_ptr<Layer> createLayerByType(const std::string layerType);
+		std::string lookaheadLayerType(const std::string line);
 	private:
 		Phase phase = Phase::Train;
 		std::vector<std::shared_ptr<Layer>> layers;

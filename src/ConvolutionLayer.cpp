@@ -17,7 +17,7 @@ namespace EasyCNN
 	{
 
 	}
-	void ConvolutionLayer::setParamaters(const ParamSize _kernelSize, const size_t _widthStep, const size_t _heightStep, const bool _enabledBias)
+	void ConvolutionLayer::setParamaters(const ParamSize _kernelSize, const size_t _widthStep, const size_t _heightStep, const bool _enabledBias, const PaddingType _padddingType)
 	{
 		easyAssert(_kernelSize.number > 0 && _kernelSize.channels > 0 &&
 			_kernelSize.width > 0 && _kernelSize.height > 0 && _widthStep > 0 && _heightStep > 0,
@@ -26,6 +26,7 @@ namespace EasyCNN
 		widthStep = _widthStep;
 		heightStep = _heightStep;
 		enabledBias = _enabledBias;
+		padddingType = _padddingType;
 	}
 	std::string ConvolutionLayer::serializeToString() const
 	{
@@ -34,7 +35,7 @@ namespace EasyCNN
 		//layer desc
 		ss << getLayerType() << spliter
 			<< kernelSize.number << spliter << kernelSize.channels << spliter << kernelSize.width << spliter << kernelSize.height << spliter
-			<< widthStep << spliter << heightStep << spliter << enabledBias << spliter;
+			<< widthStep << spliter << heightStep << spliter << enabledBias << spliter << padddingType << spliter;
 		//weight
 		const auto kernelData = kernel->getData().get();
 		for (size_t i = 0; i < kernelSize.totalSize(); i++)
@@ -58,9 +59,11 @@ namespace EasyCNN
 		std::stringstream ss(content);
 		//layer desc
 		std::string _layerType;
+		int _padddingType = 0;
 		ss >> _layerType
 			>> kernelSize.number >> kernelSize.channels >> kernelSize.width >> kernelSize.height
-			>> widthStep >> heightStep >> enabledBias;
+			>> widthStep >> heightStep >> enabledBias >> _padddingType;
+		padddingType = (PaddingType)_padddingType;
 		easyAssert(_layerType == layerType, "layer type is invalidate.");
 		solveInnerParams();
 		//weight
@@ -95,8 +98,16 @@ namespace EasyCNN
 		DataSize outputSize;
 		outputSize.number = inputSize.number;
 		outputSize.channels = kernelSize.number;
-		outputSize.width = (inputSize.width - kernelSize.width) / widthStep + 1;
-		outputSize.height = (inputSize.height - kernelSize.height) / heightStep + 1;
+		if (padddingType == VALID)
+		{
+			outputSize.width = (inputSize.width - kernelSize.width) / widthStep + 1;
+			outputSize.height = (inputSize.height - kernelSize.height) / heightStep + 1;
+		}
+		else if (padddingType == SAME)
+		{
+			outputSize.width = inputSize.width;
+			outputSize.height = inputSize.height;
+		}
 		setOutpuBuckerSize(outputSize);
 		easyAssert(outputSize.number > 0 && outputSize.channels > 0 && outputSize.width > 0 && outputSize.height > 0, "output size is invalidate.");
 		if (kernel.get() == nullptr)
@@ -150,7 +161,7 @@ namespace EasyCNN
 			convolution2d(prevData + nnStart*prevSize._3DSize(), kernelData, biasData, nextData + nnStart*nextSize._3DSize(),
 				nnStop-nnStart, prevSize.channels, prevSize.width, prevSize.height, 
 				kernelSize.number,kernelSize.width, kernelSize.height, widthStep, heightStep,
-				nextSize.width, nextSize.height);
+				nextSize.width, nextSize.height,(int)padddingType);
 		};
 #if WITH_PARALLEL_SUPPORT
 		if (thread_pool->size() <= 1 || nextSize.number <= 1)
