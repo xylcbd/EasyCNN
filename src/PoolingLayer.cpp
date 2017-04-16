@@ -135,11 +135,11 @@ namespace EasyCNN
 							{
 								for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 								{
-									const size_t inX = inStartY + ph;
-									const size_t inY = inStartX + pw;
+									const size_t inY = inStartY + ph;
+									const size_t inX = inStartX + pw;
 									if (inY >= 0 && inY<inputSize.height && inX >= 0 && inX<inputSize.width)
 									{
-										const size_t prevDataIdx = prevDataSize.getIndex(nn, nc, inX, inY);
+										const size_t prevDataIdx = prevDataSize.getIndex(nn, nc, inY, inX);
 										if (result < prevData[prevDataIdx])
 										{
 											result = prevData[prevDataIdx];
@@ -159,11 +159,11 @@ namespace EasyCNN
 							{
 								for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 								{
-									const size_t inX = inStartY + ph;
-									const size_t inY = inStartX + pw;
+									const size_t inY = inStartY + ph;
+									const size_t inX = inStartX + pw;
 									if (inY >= 0 && inY < inputSize.height && inX >= 0 && inX < inputSize.width)
 									{
-										const size_t prevDataIdx = prevDataSize.getIndex(nc, inX, inY);
+										const size_t prevDataIdx = prevDataSize.getIndex(nc, inY, inX);
 										result += prevData[prevDataIdx];
 									}
 								}
@@ -256,10 +256,15 @@ namespace EasyCNN
 							{
 								for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 								{
-									const size_t prevDiffIdx = prevSize.getIndex(nc, inStartY + ph, inStartX + pw);
-									if (ph*poolingKernelSize.width + pw == maxIdxesData[nextDataIdx])
+									const size_t inY = inStartY + ph;
+									const size_t inX = inStartX + pw;
+									if (inY >= 0 && inY < inputSize.height && inX >= 0 && inX < inputSize.width)
 									{
-										prevDiffData[prevDiffIdx] += nextDiffData[nextDataIdx];
+										const size_t prevDiffIdx = prevSize.getIndex(nc, inY, inX);
+										if (ph*poolingKernelSize.width + pw == maxIdxesData[nextDataIdx])
+										{
+											prevDiffData[prevDiffIdx] += nextDiffData[nextDataIdx];
+										}
 									}
 								}
 							}
@@ -271,8 +276,13 @@ namespace EasyCNN
 							{
 								for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 								{
-									const size_t prevDiffIdx = prevSize.getIndex(nc, inStartY + ph, inStartX + pw);
-									prevDiffData[prevDiffIdx] += meanDiff;
+									const size_t inY = inStartY + ph;
+									const size_t inX = inStartX + pw;
+									if (inY >= 0 && inY < inputSize.height && inX >= 0 && inX < inputSize.width)
+									{
+										const size_t prevDiffIdx = prevSize.getIndex(nc, inY, inX);
+										prevDiffData[prevDiffIdx] += meanDiff;
+									}
 								}
 							}
 						}

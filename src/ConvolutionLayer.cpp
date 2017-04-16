@@ -262,9 +262,14 @@ namespace EasyCNN
 								{
 									for (size_t kw = 0; kw < kernelSize.width; kw++)
 									{
-										const size_t prevDiffIdx = prevDiffSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
-										const size_t kernelIdx = kernelSize.getIndex(kn, kc, kh, kw);
-										prevDiffData[prevDiffIdx] += kernelData[kernelIdx] * nextDiffData[nextDiffIdx];
+										const size_t inY = inStartY + kh;
+										const size_t inX = inStartX + kw;
+										if (inY >= 0 && inY < inputSize.height && inX >= 0 && inX < inputSize.width)
+										{
+											const size_t prevDiffIdx = prevDiffSize.getIndex(nn, kc, inY, inX);
+											const size_t kernelIdx = kernelSize.getIndex(kn, kc, kh, kw);
+											prevDiffData[prevDiffIdx] += kernelData[kernelIdx] * nextDiffData[nextDiffIdx];
+										}
 									}
 								}
 							}
@@ -299,9 +304,14 @@ namespace EasyCNN
 							{
 								for (size_t kw = 0; kw < kernelSize.width; kw++)
 								{
-									const size_t kernelGradientIdx = kernelGradientSize.getIndex(kn, kc, kh, kw);
-									const size_t prevIdx = prevSize.getIndex(nn, kc, inStartY + kh, inStartX + kw);
-									kernelGradientData[kernelGradientIdx] += prevData[prevIdx] * nextDiffData[nextDiffIdx];
+									const size_t inY = inStartY + kh;
+									const size_t inX = inStartX + kw;
+									if (inY >= 0 && inY < inputSize.height && inX >= 0 && inX < inputSize.width)
+									{
+										const size_t kernelGradientIdx = kernelGradientSize.getIndex(kn, kc, kh, kw);
+										const size_t prevIdx = prevSize.getIndex(nn, kc, inY, inX);
+										kernelGradientData[kernelGradientIdx] += prevData[prevIdx] * nextDiffData[nextDiffIdx];
+									}
 								}
 							}
 						}
