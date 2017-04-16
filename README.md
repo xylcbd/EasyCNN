@@ -10,6 +10,8 @@ small, clean, easy to understand!
 * Basic layer: data layer, convolution layer, pooling layer, full connect layer, softmax layer, activation layers(sigmod, tanh, RELU)
 * Loss function: Cross Entropy, MSE.
 * Optimize method: SGD, SGDWithMomentum.
+* Multi-thread parallel optimized.
+* Tensorflow model support (traditional CNN only now).([link](tools/tf_model_convert/ReadMe.md))
 
 ## Examples
 * mnist demo, with ConvNet and MLP net,  [examples/mnist/mnist_train_test.cpp](./examples/mnist/mnist_train_test.cpp "mnist_train_test.cpp")  

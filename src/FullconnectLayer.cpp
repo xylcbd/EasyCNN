@@ -1,6 +1,7 @@
 #include "EasyCNN/FullconnectLayer.h"
 #include "EasyCNN/CommonTools.h"
 #include "EasyCNN/MathFunctions.h"
+#include "EasyCNN/ThreadPool.h"
 
 namespace EasyCNN
 {
@@ -143,37 +144,10 @@ namespace EasyCNN
 		float* nextData = next->getData().get();		
 		const float* weightData = weight->getData().get();
 		const float* biasData = enabledBias ? bias->getData().get() : nullptr;
-		auto fc_func = [&](const size_t nnStart, const size_t nnStop){
-			fullconnect(prevData + nnStart * prevSize._3DSize(), weightData, biasData, nextData + nnStart * nextSize._3DSize(), nnStop-nnStart, prevSize._3DSize(), nextSize._3DSize());
+		auto worker = [&](const size_t start, const size_t stop){
+			fullconnect(prevData + start * prevSize._3DSize(), weightData, biasData, nextData + start * nextSize._3DSize(), stop-start, prevSize._3DSize(), nextSize._3DSize());
 		};
-#if WITH_PARALLEL_SUPPORT
-		if (thread_pool->size() <= 1 || nextSize.number <= 1)
-		{
-			fc_func(0, nextSize.number);
-		}
-		else
-		{
-			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
-			size_t payload_per_thread = nextSize.number / thread_pool->size();
-			std::vector<std::future<void>> futures;
-			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
-			{
-				const size_t start = i*payload_per_thread;
-				const size_t stop = std::min((i + 1)*payload_per_thread, nextSize.number);
-				futures.push_back(thread_pool->enqueue(fc_func, start, stop));
-				if (stop >= nextSize.number)
-				{
-					break;
-				}
-			}
-			for (size_t i = 0; i < futures.size(); i++)
-			{
-				futures[i].wait();
-			}
-		}
-#else
-		fc_func(0, nextSize.number);
-#endif //#if WITH_PARALLEL_SUPPORT
+		dispatch_worker(worker,prevSize.number);
 	}
 
 	void FullconnectLayer::backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,
@@ -204,8 +178,8 @@ namespace EasyCNN
 		//update prevDiff
 		prevDiff->fillData(0.0f);		
 		//calculate current inner diff && multiply next diff
-		auto df_fc_func = [&](const size_t nnStart, const size_t nnStop){
-			for (size_t pn = nnStart; pn < nnStop; pn++)
+		auto worker = [&](const size_t start, const size_t stop){
+			for (size_t pn = start; pn < stop; pn++)
 			{
 				for (size_t pidx = 0; pidx < prevDiffSize._3DSize(); pidx++)
 				{
@@ -219,34 +193,7 @@ namespace EasyCNN
 				}
 			}
 		};
-#if WITH_PARALLEL_SUPPORT
-		if (thread_pool->size() <= 1 || nextSize.number <= 1)
-		{
-			df_fc_func(0, prevDiffSize.number);
-		}
-		else
-		{
-			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
-			size_t payload_per_thread = prevDiffSize.number / thread_pool->size();
-			std::vector<std::future<void>> futures;
-			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
-			{
-				const size_t start = i*payload_per_thread;
-				const size_t stop = std::min((i + 1)*payload_per_thread, prevDiffSize.number);
-				futures.push_back(thread_pool->enqueue(df_fc_func, start, stop));
-				if (stop >= prevDiffSize.number)
-				{
-					break;
-				}
-			}
-			for (size_t i = 0; i < futures.size(); i++)
-			{
-				futures[i].wait();
-			}
-		}
-#else
-		df_fc_func(0, prevDiffSize.number);
-#endif //#if WITH_PARALLEL_SUPPORT
+		dispatch_worker(worker, prevSize.number);
 
 		//////////////////////////////////////////////////////////////////////////
 		//update this layer's param

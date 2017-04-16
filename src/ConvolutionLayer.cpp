@@ -2,6 +2,7 @@
 #include "EasyCNN/ConvolutionLayer.h"
 #include "EasyCNN/CommonTools.h"
 #include "EasyCNN/MathFunctions.h"
+#include "EasyCNN/ThreadPool.h"
 
 #if WITH_OPENCV_DEBUG
 #include "opencv2/opencv.hpp"
@@ -157,46 +158,19 @@ namespace EasyCNN
 		const float* biasData = bias->getData().get();
 		float* nextData = next->getData().get();
 
-		auto conv_func = [&](const size_t nnStart, const size_t nnStop){
-			convolution2d(prevData + nnStart*prevSize._3DSize(), kernelData, biasData, nextData + nnStart*nextSize._3DSize(),
-				nnStop-nnStart, prevSize.channels, prevSize.width, prevSize.height, 
+		auto worker = [&](const size_t start, const size_t stop){
+			convolution2d(prevData + start*prevSize._3DSize(), kernelData, biasData, nextData + start*nextSize._3DSize(),
+				stop-start, prevSize.channels, prevSize.width, prevSize.height, 
 				kernelSize.number,kernelSize.width, kernelSize.height, widthStep, heightStep,
 				nextSize.width, nextSize.height,(int)padddingType);
 		};
-#if WITH_PARALLEL_SUPPORT
-		if (thread_pool->size() <= 1 || nextSize.number <= 1)
-		{
-			conv_func(0,nextSize.number);
-		}
-		else
-		{
-			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
-			size_t payload_per_thread = nextSize.number / thread_pool->size();
-			std::vector<std::future<void>> futures;
-			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
-			{
-				const size_t start = i*payload_per_thread;
-				const size_t stop = std::min((i + 1)*payload_per_thread, nextSize.number);
-				futures.push_back(thread_pool->enqueue(conv_func, start, stop));
-				if (stop >= nextSize.number)
-				{
-					break;
-				}
-			}
-			for (size_t i = 0; i < futures.size(); i++)
-			{
-				futures[i].wait();
-			}
-		}
-#else
-		conv_func(0,nextSize.number);
-#endif //#if WITH_PARALLEL_SUPPORT
+		dispatch_worker(worker, prevSize.number);
 
 #if WITH_OPENCV_DEBUG
 		//input image
-		for (int pn = 0; pn < prevSize.number; pn++)
+		for (size_t pn = 0; pn < prevSize.number; pn++)
 		{
-			for (int pc = 0; pc < prevSize.channels; pc++)
+			for (size_t pc = 0; pc < prevSize.channels; pc++)
 			{
 				const float* imageData = prevData + pn*prevSize._3DSize() + pc*prevSize._2DSize();
 				const size_t imageWidth = prevSize.width;
@@ -204,13 +178,16 @@ namespace EasyCNN
 				const size_t imageHeight = prevSize.height;
 				const size_t imageChannel = 1;
 				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-				image.empty();
+				std::stringstream ss;
+				ss << "convolution input, number: " << pn << ",channel: " << pc;
+				const std::string title = ss.str();
+// 				cv::imshow(title, image);
 			}		
 		}
 		//kernel image
-		for (int kn = 0; kn < kernelSize.number; kn++)
+		for (size_t kn = 0; kn < kernelSize.number; kn++)
 		{
-			for (int kc = 0; kc < kernelSize.channels; kc++)
+			for (size_t kc = 0; kc < kernelSize.channels; kc++)
 			{
 				const float* imageData = kernelData + kn*kernelSize._3DSize() + kc*kernelSize._2DSize();
 				const size_t imageWidth = kernelSize.width;
@@ -218,13 +195,16 @@ namespace EasyCNN
 				const size_t imageHeight = kernelSize.height;
 				const size_t imageChannel = 1;
 				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-				image.empty();
+ 				std::stringstream ss;
+				ss << "convolution kernel, number: " << kn << ",channel: " << kc;
+				const std::string title = ss.str();
+// 				cv::imshow(title, image);
 			}
 		}
 		//output image
-		for (int nn = 0; nn < nextSize.number; nn++)
+		for (size_t nn = 0; nn < nextSize.number; nn++)
 		{
-			for (int nc = 0; nc < nextSize.channels; nc++)
+			for (size_t nc = 0; nc < nextSize.channels; nc++)
 			{
 				const float* imageData = nextData + nn*nextSize._3DSize() + nc*nextSize._2DSize();
 				const size_t imageWidth = nextSize.width;
@@ -232,9 +212,14 @@ namespace EasyCNN
 				const size_t imageHeight = nextSize.height;
 				const size_t imageChannel = 1;
 				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-				image.empty();
+				std::stringstream ss;
+				ss << "convolution output, number: " << nn << ",channel: " << nc;
+				const std::string title = ss.str();
+// 				cv::imshow(title, image);
 			}
 		}
+		cv::waitKey(0);
+		cv::destroyAllWindows();
 #endif //WITH_OPENCV_DEBUG
 	}
 	void ConvolutionLayer::backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,
@@ -258,8 +243,8 @@ namespace EasyCNN
 		//update prevDiff
 		prevDiff->fillData(0.0f);
 		//calculate current inner diff
-		auto calc_diff_func = [&](const size_t start_nn, const size_t stop_nn){
-			for (size_t nn = start_nn; nn < stop_nn; nn++)
+		auto worker = [&](const size_t start, const size_t stop){
+			for (size_t nn = start; nn < stop; nn++)
 			{
 				for (size_t nc = 0; nc < nextSize.channels; nc++)
 				{
@@ -288,34 +273,7 @@ namespace EasyCNN
 				}
 			}
 		};
-#if WITH_PARALLEL_SUPPORT
-		if (thread_pool->size() <= 1 || nextSize.number <= 1)
-		{
-			calc_diff_func(0, nextSize.number);
-		}
-		else
-		{
-			easyAssert(thread_pool->size() > 1, "thread must be larger than 1");
-			size_t payload_per_thread = nextSize.number / thread_pool->size();
-			std::vector<std::future<void>> futures;
-			for (size_t i = 0; i < (size_t)thread_pool->size(); i++)
-			{
-				const size_t start = i*payload_per_thread;
-				const size_t stop = std::min((i + 1)*payload_per_thread, nextSize.number);
-				futures.push_back(thread_pool->enqueue(calc_diff_func, start, stop));
-				if (stop >= nextSize.number)
-				{
-					break;
-				}
-			}
-			for (size_t i = 0; i < futures.size(); i++)
-			{
-				futures[i].wait();
-			}
-		}
-#else
-		calc_diff_func(0, nextSize.number);
-#endif //WITH_PARALLEL_SUPPORT
+		dispatch_worker(worker, prevSize.number);
 
 		//////////////////////////////////////////////////////////////////////////
 		//update this layer's param

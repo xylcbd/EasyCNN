@@ -13,10 +13,16 @@ namespace EasyCNN
 			MaxPooling=0,
 			MeanPooling=1
 		};
+		enum PaddingType
+		{
+			VALID = 0,
+			SAME = 1
+		};
 	public:
 		PoolingLayer();
 		virtual ~PoolingLayer();	
-		void setParamaters(const PoolingType _poolingType, const ParamSize _poolingKernelSize, const size_t _widthStep, const size_t _heightStep);
+		void setParamaters(const PoolingType _poolingType, const ParamSize _poolingKernelSize, const size_t _widthStep, const size_t _heightStep,
+			const PaddingType _paddingType);
 	protected:
 		DECLARE_LAYER_TYPE;
 		virtual std::string serializeToString() const override;
@@ -32,5 +38,6 @@ namespace EasyCNN
 		ParamSize poolingKernelSize;
 		size_t widthStep = 0;
 		size_t heightStep = 0;
+		PaddingType paddingType = VALID;
 	};
 }

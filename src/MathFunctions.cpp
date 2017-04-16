@@ -255,8 +255,8 @@ namespace EasyCNN
 				{
 					for (size_t nw = 0; nw < outputSize.width; nw++)
 					{
-						const size_t inStartX = nw - kw/2;
-						const size_t inStartY = nh - kh/2;
+						const int inStartX = nw - kw/2;
+						const int inStartY = nh - kh / 2;
 						float sum = 0;
 						for (size_t kc = 0; kc < kernelSize.channels; kc++)
 						{
@@ -264,9 +264,9 @@ namespace EasyCNN
 							{
 								for (size_t kw = 0; kw < kernelSize.width; kw++)
 								{
-									const size_t inY = inStartY + kh;
-									const size_t inX = inStartX + kw;
-									if (inY >= 0 && inY<inputSize.height && inX >= 0 && inX<inputSize.width)
+									const int inY = inStartY + kh;
+									const int inX = inStartX + kw;
+									if (inY >= 0 && inY<(int)inputSize.height && inX >= 0 && inX<(int)inputSize.width)
 									{
 										const size_t prevIdx = inputSize.getIndex(nn, kc, inY, inX);
 										const size_t kernelIdx = kernelSize.getIndex(nc, kc, kh, kw);

@@ -122,10 +122,10 @@
     <ClCompile Include="..\..\src\BatchNormalizaitonLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Configure.cpp">
+    <ClCompile Include="..\..\src\MathFunctions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\MathFunctions.cpp">
+    <ClCompile Include="..\..\src\ThreadPool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -17,7 +17,7 @@ namespace EasyCNN
 		ConvolutionLayer();
 		virtual ~ConvolutionLayer();	
 		void setParamaters(const ParamSize _kernelSize, const size_t _widthStep, const size_t _heightStep, 
-			const bool _enabledBias = true, const PaddingType _padddingType = SAME);
+			const bool _enabledBias, const PaddingType _padddingType);
 	protected:
 		DECLARE_LAYER_TYPE;
 		virtual std::string serializeToString() const override;

@@ -16,7 +16,7 @@ namespace EasyCNN
 	{
 
 	}
-	void PoolingLayer::setParamaters(const PoolingType _poolingType, const ParamSize _poolingKernelSize, const size_t _widthStep, const size_t _heightStep)
+	void PoolingLayer::setParamaters(const PoolingType _poolingType, const ParamSize _poolingKernelSize, const size_t _widthStep, const size_t _heightStep, const PaddingType _paddingType)
 	{
 		easyAssert(_poolingKernelSize.number == 1 && _poolingKernelSize.channels > 0 && _poolingKernelSize.width > 1 && _poolingKernelSize.height > 1 && _widthStep > 0 && _heightStep > 0,
 			"parameters invalidate.");
@@ -24,6 +24,7 @@ namespace EasyCNN
 		poolingType = _poolingType;
 		widthStep = _widthStep;
 		heightStep = _heightStep;
+		paddingType = _paddingType;
 	}
 	std::string PoolingLayer::serializeToString() const
 	{
@@ -47,6 +48,7 @@ namespace EasyCNN
 		//layer desc
 		std::string _layerType;
 		int _poolingType = 0;
+		int _paddingType = 0;
 		ss >> _layerType
 			>> _poolingType
 			>> poolingKernelSize.number
@@ -54,8 +56,10 @@ namespace EasyCNN
 			>> poolingKernelSize.width
 			>> poolingKernelSize.height
 			>> widthStep
-			>> heightStep;
+			>> heightStep
+			>> _paddingType;
 		poolingType = (PoolingType)_poolingType;
+		paddingType = (PaddingType)_paddingType;
 		easyAssert(_layerType == getLayerType(), "layer type is invalidate.");
 		easyAssert((poolingType == MaxPooling || poolingType == MeanPooling), "pooling type is invalidate.");
 		solveInnerParams();
@@ -77,8 +81,16 @@ namespace EasyCNN
 		DataSize outputSize;
 		outputSize.number = inputSize.number;
 		outputSize.channels = inputSize.channels;
-		outputSize.width = (inputSize.width - poolingKernelSize.width) / widthStep + 1;
-		outputSize.height = (inputSize.height - poolingKernelSize.height) / heightStep + 1;
+		if (paddingType == VALID)
+		{
+			outputSize.width = (inputSize.width - poolingKernelSize.width) / widthStep + 1;
+			outputSize.height = (inputSize.height - poolingKernelSize.height) / heightStep + 1;
+		}
+		else if (paddingType == SAME)
+		{
+			outputSize.width = (size_t)std::ceil((float)inputSize.width / (float)widthStep);
+			outputSize.height = (size_t)std::ceil((float)inputSize.height / (float)heightStep);
+		}
 		setOutpuBuckerSize(outputSize);
 
 		if (getPhase() == Phase::Train && poolingType == PoolingType::MaxPooling)
@@ -123,12 +135,17 @@ namespace EasyCNN
 							{
 								for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 								{
-									const size_t prevDataIdx = prevDataSize.getIndex(nn, nc, inStartY + ph, inStartX + pw);
-									if (result < prevData[prevDataIdx])
+									const size_t inX = inStartY + ph;
+									const size_t inY = inStartX + pw;
+									if (inY >= 0 && inY<inputSize.height && inX >= 0 && inX<inputSize.width)
 									{
-										result = prevData[prevDataIdx];
-										maxIdx = ph*poolingKernelSize.width + pw;
-									}
+										const size_t prevDataIdx = prevDataSize.getIndex(nn, nc, inX, inY);
+										if (result < prevData[prevDataIdx])
+										{
+											result = prevData[prevDataIdx];
+											maxIdx = ph*poolingKernelSize.width + pw;
+										}
+									}									
 								}
 							}
 							if (maxIdxes)
@@ -142,8 +159,13 @@ namespace EasyCNN
 							{
 								for (size_t pw = 0; pw < poolingKernelSize.width; pw++)
 								{
-									const size_t prevDataIdx = prevDataSize.getIndex(nc, inStartY + ph, inStartX + pw);
-									result += prevData[prevDataIdx];
+									const size_t inX = inStartY + ph;
+									const size_t inY = inStartX + pw;
+									if (inY >= 0 && inY < inputSize.height && inX >= 0 && inX < inputSize.width)
+									{
+										const size_t prevDataIdx = prevDataSize.getIndex(nc, inX, inY);
+										result += prevData[prevDataIdx];
+									}
 								}
 							}
 							result /= poolingKernelSize.width*poolingKernelSize.height;
@@ -156,9 +178,9 @@ namespace EasyCNN
 
 #if WITH_OPENCV_DEBUG
 		//input image
-		for (int pn = 0; pn < prevDataSize.number; pn++)
+		for (size_t pn = 0; pn < prevDataSize.number; pn++)
 		{
-			for (int pc = 0; pc < prevDataSize.channels; pc++)
+			for (size_t pc = 0; pc < prevDataSize.channels; pc++)
 			{
 				const float* imageData = prevData + pn*prevDataSize._3DSize() + pc*prevDataSize._2DSize();
 				const size_t imageWidth = prevDataSize.width;
@@ -166,13 +188,16 @@ namespace EasyCNN
 				const size_t imageHeight = prevDataSize.height;
 				const size_t imageChannel = 1;
 				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-				image.empty();
+				std::stringstream ss;
+				ss << "pooling input, number: " << pn << ",channel: " << pc;
+				const std::string title = ss.str();
+// 				cv::imshow(title, image);
 			}
 		}
 		//output image
-		for (int nn = 0; nn < nextDataSize.number; nn++)
+		for (size_t nn = 0; nn < nextDataSize.number; nn++)
 		{
-			for (int nc = 0; nc < nextDataSize.channels; nc++)
+			for (size_t nc = 0; nc < nextDataSize.channels; nc++)
 			{
 				const float* imageData = nextData + nn*nextDataSize._3DSize() + nc*nextDataSize._2DSize();
 				const size_t imageWidth = nextDataSize.width;
@@ -180,9 +205,14 @@ namespace EasyCNN
 				const size_t imageHeight = nextDataSize.height;
 				const size_t imageChannel = 1;
 				cv::Mat image((int)imageHeight, (int)imageWidth, CV_32FC1, (void*)imageData, imageStride*sizeof(imageData[0]));
-				image.empty();
+				std::stringstream ss;
+				ss << "pooling output, number: " << nn << ",channel: " << nc;
+				const std::string title = ss.str();
+// 				cv::imshow(title, image);
 			}
 		}
+		cv::waitKey(0);
+		cv::destroyAllWindows();
 #endif //WITH_OPENCV_DEBUG
 	}
 	void PoolingLayer::backward(std::shared_ptr<DataBucket> prev, const std::shared_ptr<DataBucket> next,

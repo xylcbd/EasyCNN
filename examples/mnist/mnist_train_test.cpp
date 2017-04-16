@@ -36,7 +36,7 @@ static bool fetch_data(const std::vector<image_t>& images,std::shared_ptr<EasyCN
 	const size_t sizePerLabel = labelDataBucket->getSize()._3DSize();
 	assert(sizePerImage == images[0].channels*images[0].width*images[0].height);
 	//scale to 0.0f~1.0f
-	const float scaleRate = 1.0f / 256.0f;
+	const float scaleRate = 1.0f / 255.0f;
 	for (size_t i = offset; i < actualEndPos; i++)
 	{
 		//image data
@@ -96,7 +96,7 @@ static std::shared_ptr<EasyCNN::DataBucket> convertVectorToDataBucket(const std:
 	const size_t width = test_images[0].width;
 	const size_t height = test_images[0].height;
 	const size_t sizePerImage = channel*width*height;
-	const float scaleRate = 1.0f / 256.0f;
+	const float scaleRate = 1.0f / 255.0f;
 	std::shared_ptr<EasyCNN::DataBucket> result(new EasyCNN::DataBucket(EasyCNN::DataSize(number, channel, width, height)));
 	for (size_t i = start; i < start + len; i++)
 	{
@@ -184,44 +184,57 @@ static EasyCNN::NetWork buildConvNet(const size_t batch,const size_t channels,co
 {
 	EasyCNN::NetWork network;
 	network.setInputSize(EasyCNN::DataSize(batch, channels, width, height));
-	network.setLossFunctor(std::make_shared<EasyCNN::CrossEntropyFunctor>());
-	network.setOptimizer(std::make_shared<EasyCNN::SGD>(0.01f));
 	//input data layer 0
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
+
 	//convolution layer 1
 	std::shared_ptr<EasyCNN::ConvolutionLayer> _1_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
-	_1_convLayer->setParamaters(EasyCNN::ParamSize(6, 1, 5, 5), 1, 1, true);
+	_1_convLayer->setParamaters(EasyCNN::ParamSize(6, 1, 3, 3), 1, 1, true,EasyCNN::ConvolutionLayer::SAME);
 	network.addayer(_1_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 2
 	std::shared_ptr<EasyCNN::PoolingLayer> _2_poolingLayer(std::make_shared<EasyCNN::PoolingLayer>());
-	_2_poolingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 6, 2, 2), 2, 2);
+	_2_poolingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 6, 2, 2), 2, 2, EasyCNN::PoolingLayer::SAME);
 	network.addayer(_2_poolingLayer);
+
 	//convolution layer 3
 	std::shared_ptr<EasyCNN::ConvolutionLayer> _3_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
-	_3_convLayer->setParamaters(EasyCNN::ParamSize(16, 6, 5, 5), 1, 1, true);
+	_3_convLayer->setParamaters(EasyCNN::ParamSize(12, 6, 3, 3), 1, 1, true, EasyCNN::ConvolutionLayer::SAME);
 	network.addayer(_3_convLayer);
 	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
 	//pooling layer 4
 	std::shared_ptr<EasyCNN::PoolingLayer> _4_pooingLayer(std::make_shared<EasyCNN::PoolingLayer>());
-	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 16, 2, 2), 2, 2);
+	_4_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 12, 2, 2), 2, 2, EasyCNN::PoolingLayer::SAME);
 	network.addayer(_4_pooingLayer);
-	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
-	//full connect layer 5
-	std::shared_ptr<EasyCNN::FullconnectLayer> _5_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_5_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 512, 1, 1),true);
-	network.addayer(_5_fullconnectLayer);
-	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
-	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
-	//full connect layer 6
-	std::shared_ptr<EasyCNN::FullconnectLayer> _6_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
-	_6_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, classes, 1, 1), true);
-	network.addayer(_6_fullconnectLayer);
 
-	//soft max layer 6
-	std::shared_ptr<EasyCNN::SoftmaxLayer> _7_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
-	network.addayer(_7_softmaxLayer);
+	//convolution layer 5
+	std::shared_ptr<EasyCNN::ConvolutionLayer> _5_convLayer(std::make_shared<EasyCNN::ConvolutionLayer>());
+	_5_convLayer->setParamaters(EasyCNN::ParamSize(24, 12, 3, 3), 1, 1, true, EasyCNN::ConvolutionLayer::SAME);
+	network.addayer(_5_convLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	//pooling layer 6
+	std::shared_ptr<EasyCNN::PoolingLayer> _6_pooingLayer(std::make_shared<EasyCNN::PoolingLayer>());
+	_6_pooingLayer->setParamaters(EasyCNN::PoolingLayer::PoolingType::MaxPooling, EasyCNN::ParamSize(1, 24, 2, 2), 2, 2, EasyCNN::PoolingLayer::SAME);
+	network.addayer(_6_pooingLayer);
+
+	
+	//full connect layer 7
+	std::shared_ptr<EasyCNN::FullconnectLayer> _7_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
+	_7_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, 512, 1, 1), true);
+	network.addayer(_7_fullconnectLayer);
+	network.addayer(std::make_shared<EasyCNN::ReluLayer>());
+	
+	//network.addayer(std::make_shared<EasyCNN::DropoutLayer>(0.5f));
+
+	//full connect layer 8
+	std::shared_ptr<EasyCNN::FullconnectLayer> _8_fullconnectLayer(std::make_shared<EasyCNN::FullconnectLayer>());
+	_8_fullconnectLayer->setParamaters(EasyCNN::ParamSize(1, classes, 1, 1), true);
+	network.addayer(_8_fullconnectLayer);
+
+	//soft max layer 9
+	std::shared_ptr<EasyCNN::SoftmaxLayer> _9_softmaxLayer(std::make_shared<EasyCNN::SoftmaxLayer>());
+	network.addayer(_9_softmaxLayer);
 
 	return network;
 }
@@ -229,8 +242,6 @@ static EasyCNN::NetWork buildMLPNet(const size_t batch, const size_t channels, c
 {
 	EasyCNN::NetWork network;
 	network.setInputSize(EasyCNN::DataSize(batch, channels, width, height));
-	network.setLossFunctor(std::make_shared<EasyCNN::MSEFunctor>());
-	network.setOptimizer(std::make_shared<EasyCNN::SGDWithMomentum>(0.01f,0.9f));
 	//input data layer
 	std::shared_ptr<EasyCNN::InputLayer> _0_inputLayer(std::make_shared<EasyCNN::InputLayer>());
 	network.addayer(_0_inputLayer);
@@ -341,6 +352,8 @@ static void train(const std::string& mnist_train_images_file,
 
 	EasyCNN::logCritical("construct network begin...");
 	EasyCNN::NetWork network(buildConvNet(batch, channels, width, height));
+	network.setLossFunctor(std::make_shared<EasyCNN::CrossEntropyFunctor>());
+	network.setOptimizer(std::make_shared<EasyCNN::SGD>(learningRate));
 	network.setLearningRate(learningRate);
 	EasyCNN::logCritical("construct network done.");
 
@@ -536,7 +549,7 @@ int mnist_main(int argc, char* argv[])
 {
 	EasyCNN::set_thread_num(4);
 
-	const std::string model_file = "../../res/model/mnist_mlp.model";
+	const std::string model_file = "../../res/model/mnist.model";
 #if 1
 	const std::string mnist_train_images_file = "../../res/mnist_data/train-images.idx3-ubyte";
 	const std::string mnist_train_labels_file = "../../res/mnist_data/train-labels.idx1-ubyte";

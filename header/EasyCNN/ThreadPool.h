@@ -3,6 +3,8 @@
 *  License: WTFPL
 */
 #pragma once
+#include <functional>
+#include "EasyCNN/Configure.h"
 
 #include <vector>
 #include <queue>
@@ -16,15 +18,20 @@
 
 namespace EasyCNN
 {
-	class ThreadPool {
-	public:
-		ThreadPool(size_t);
-		~ThreadPool();
-		size_t size();
-
+	//TODO: using wrapper to hidden information of ThreadPool
+	class ThreadPool {			
+	public:	
+		static ThreadPool& instance();
+		size_t size() const;
+		void resize(const size_t new_size);
 		template<class F, class... Args>
 		auto enqueue(F&& f, Args&&... args)
-			->std::future<typename std::result_of<F(Args...)>::type>;		
+			->std::future<typename std::result_of<F(Args...)>::type>;	
+	private:
+		ThreadPool(const size_t threads);
+		virtual ~ThreadPool();
+		void shutdown();
+		void startup(const size_t threads);
 	private:
 		// need to keep track of threads so we can join them
 		std::vector< std::thread > workers;
@@ -34,54 +41,8 @@ namespace EasyCNN
 		// synchronization
 		std::mutex queue_mutex;
 		std::condition_variable condition;
-		bool stop;
+		bool stop = true;
 	};
-
-	// the constructor just launches some amount of workers
-	inline ThreadPool::ThreadPool(size_t threads)
-		: stop(false)
-	{
-		for (size_t i = 0; i < threads; ++i)
-			workers.emplace_back(
-			[this]
-		{
-			for (;;)
-			{
-				std::function<void()> task;
-
-				{
-					std::unique_lock<std::mutex> lock(this->queue_mutex);
-					this->condition.wait(lock,
-						[this]{ return this->stop || !this->tasks.empty(); });
-					if (this->stop && this->tasks.empty())
-						return;
-					task = std::move(this->tasks.front());
-					this->tasks.pop();
-				}
-
-				task();
-			}
-		}
-		);
-	}
-
-	// the destructor joins all threads
-	inline ThreadPool::~ThreadPool()
-	{
-		{
-			std::unique_lock<std::mutex> lock(queue_mutex);
-			stop = true;
-		}
-		condition.notify_all();
-		for (std::thread &worker : workers)
-			worker.join();
-	}
-
-	inline size_t ThreadPool::size()
-	{
-		return workers.size();
-	}
-
 	// add new work item to the pool
 	template<class F, class... Args>
 	auto ThreadPool::enqueue(F&& f, Args&&... args)
@@ -106,4 +67,13 @@ namespace EasyCNN
 		condition.notify_one();
 		return res;
 	}
+
+	//////////////////////////////////////////////////////////////////////////
+	//APIs
+	//get thread number
+	size_t get_thread_num();
+	//set thread number, and returned support thread number
+	size_t set_thread_num(const size_t num);
+	//dispatcher tasks of layer
+	void dispatch_worker(std::function<void(const size_t, const size_t)> func, const size_t number);
 };
