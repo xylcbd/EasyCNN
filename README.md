@@ -5,6 +5,8 @@ small, clean, easy to understand!
 
 [blog about EasyCNN in Chinese.](http://hongbomin.com/2016/11/12/easycnn-design-history/)
 
+[port tensorflow model to easycnn model](http://hongbomin.com/2017/06/23/tensorflow-to-easycnn/)
+
 ## Features
 * All in one: without any dependency, pure c++ implemented.
 * Basic layer: data layer, convolution layer, pooling layer, full connect layer, softmax layer, activation layers(sigmod, tanh, RELU)
