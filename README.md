@@ -3,6 +3,8 @@ Easy convolution neural network framework.
  
 small, clean, easy to understand!
 
+QQ群：603891505
+
 [blog about EasyCNN in Chinese.](http://hongbomin.com/2016/11/12/easycnn-design-history/)
 
 [port tensorflow model to easycnn model](http://hongbomin.com/2017/06/23/tensorflow-to-easycnn/)
