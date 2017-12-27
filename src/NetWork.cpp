@@ -336,7 +336,6 @@ namespace EasyCNN
 	{
 #if WITH_ENCRYPT_MODEL		
 		std::string message = content;
-		message = message.substr(0, message.size() - 1);
 		for (size_t i = 0; i < message.size(); i++)
 		{
 			message[i] += 15;
