@@ -38,7 +38,8 @@ namespace EasyCNN
 			<< poolingKernelSize.width << spliter
 			<< poolingKernelSize.height << spliter
 			<< widthStep << spliter
-			<< heightStep << spliter;
+			<< heightStep << spliter
+			<< paddingType << spliter;
 
 		return ss.str();
 	}
