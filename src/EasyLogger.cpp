@@ -44,7 +44,7 @@ namespace EasyCNN
 		const auto t = time(nullptr);
 		const auto local = localtime(&t);
 		ss << "[" <<
-			std::setw(4) << std::setfill('0') << std::setiosflags(std::ios::fixed) << local->tm_year + 1990 << "/" <<
+			std::setw(4) << std::setfill('0') << std::setiosflags(std::ios::fixed) << local->tm_year + 1900 << "/" <<
 			std::setw(2) << std::setfill('0') << std::setiosflags(std::ios::fixed) << local->tm_mon + 1 << "/" <<
 			std::setw(2) << std::setfill('0') << std::setiosflags(std::ios::fixed) << local->tm_mday << " " <<
 			std::setw(2) << std::setfill('0') << std::setiosflags(std::ios::fixed) << local->tm_hour << ":" << 
